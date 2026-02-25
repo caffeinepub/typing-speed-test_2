@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T16:30:17.374Z",
+  "generatedAt": "2026-02-25T04:39:10.509Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -11,25 +11,27 @@
     "implemented": 1,
     "items": [
       {
-        "id": "REQ-8",
-        "summary": "Change the blinking cursor indicator color on the current character position in the typing test. Update the relevant CSS keyframe animation and/or the `.current` character highlight class in `frontend/src/index.css` so the blinking cursor uses a distinct, visually appealing color (e.g., a bright accent such as amber/yellow or white) instead of the current color.",
+        "id": "REQ-19",
+        "summary": "Remove all timer and time-related UI elements from the game. This includes the countdown timer display, the duration selector toggle buttons (15/30/60/120s), and any time-remaining HUD panel. The game should no longer end based on a timer; instead it runs until all lives are lost (game over condition remains lives-based only).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/index.css"
+          "frontend/src/App.tsx",
+          "frontend/src/types/game.ts"
         ],
         "matchedFiles": [
-          "frontend/src/index.css"
+          "frontend/src/App.tsx",
+          "frontend/src/types/game.ts"
         ]
       }
     ]
   },
   "changedFiles": [
     "build-request.json",
-    "build-template/README.md",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/index.css",
+    "frontend/src/App.tsx",
+    "frontend/src/types/game.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

@@ -1,466 +1,770 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { RotateCcw, Keyboard, Zap, Target, Clock, Trophy, Heart } from 'lucide-react';
+import { RotateCcw, Heart, Zap, Target, Trophy, TrendingUp, Crosshair } from 'lucide-react';
+import FallingWord from './components/FallingWord';
+import FloatingScorePopup from './components/FloatingScorePopup';
+import GameInputBar from './components/GameInputBar';
+import { getWordForLevel } from './data/wordLists';
+import type { FallingWord as FallingWordType, ScorePopup, ComboNotification, GamePhase, GameStats } from './types/game';
 
-const PARAGRAPHS = [
-  "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump! The five boxing wizards jump quickly.",
-  "Technology is best when it brings people together. The internet has revolutionized the way we communicate, work, and learn. Every day, millions of people connect across the globe sharing ideas and building communities.",
-  "In the beginning was the Word, and the Word was with God, and the Word was God. The same was in the beginning with God. All things were made by him; and without him was not any thing made that was made.",
-  "To be or not to be, that is the question. Whether tis nobler in the mind to suffer the slings and arrows of outrageous fortune, or to take arms against a sea of troubles and by opposing end them.",
-  "The universe is under no obligation to make sense to you. Space is big. You just won't believe how vastly, hugely, mind-bogglingly big it is. I mean, you may think it's a long way down the road to the chemist's.",
-  "Programming is the art of telling another human what one wants the computer to do. Any fool can write code that a computer can understand. Good programmers write code that humans can understand.",
-  "Success is not final, failure is not fatal: it is the courage to continue that counts. The greatest glory in living lies not in never falling, but in rising every time we fall.",
-  "The only way to do great work is to love what you do. If you haven't found it yet, keep looking. Don't settle. As with all matters of the heart, you'll know when you find it.",
-  "Imagination is more important than knowledge. Knowledge is limited. Imagination encircles the world. Logic will get you from A to B. Imagination will take you everywhere.",
-  "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity.",
-];
+const MAX_LIVES = 3;
+const PLAY_FIELD_HEIGHT = 520;
+const WORD_BOTTOM_THRESHOLD = PLAY_FIELD_HEIGHT - 40;
 
-type GameState = 'idle' | 'playing' | 'finished';
+const DIFFICULTY_CONFIG: Record<number, { spawnInterval: number; baseSpeed: number }> = {
+  1: { spawnInterval: 2800, baseSpeed: 38 },
+  2: { spawnInterval: 2400, baseSpeed: 48 },
+  3: { spawnInterval: 2000, baseSpeed: 60 },
+  4: { spawnInterval: 1700, baseSpeed: 74 },
+  5: { spawnInterval: 1500, baseSpeed: 88 },
+  6: { spawnInterval: 1300, baseSpeed: 104 },
+  7: { spawnInterval: 1150, baseSpeed: 120 },
+  8: { spawnInterval: 1000, baseSpeed: 138 },
+  9: { spawnInterval: 900, baseSpeed: 158 },
+  10: { spawnInterval: 800, baseSpeed: 180 },
+};
 
-interface Stats {
-  wpm: number;
-  cpm: number;
-  accuracy: number;
-  correctChars: number;
-  wrongChars: number;
-  totalTyped: number;
+function getDifficultyConfig(level: number) {
+  const clamped = Math.min(level, 10);
+  return DIFFICULTY_CONFIG[clamped] || DIFFICULTY_CONFIG[10];
 }
 
-function getRandomParagraph(exclude?: string): string {
-  const available = exclude ? PARAGRAPHS.filter(p => p !== exclude) : PARAGRAPHS;
-  return available[Math.floor(Math.random() * available.length)];
+function getMultiplier(streak: number): number {
+  if (streak >= 50) return 5;
+  if (streak >= 25) return 3;
+  if (streak >= 10) return 2;
+  return 1;
 }
 
-function StatCard({
+function getMultiplierClass(multiplier: number): string {
+  if (multiplier >= 5) return 'multiplier-x5';
+  if (multiplier >= 3) return 'multiplier-x3';
+  if (multiplier >= 2) return 'multiplier-x2';
+  return 'multiplier-x1';
+}
+
+// Starfield
+function Starfield() {
+  const stars = useRef<Array<{ x: number; y: number; size: number; duration: number; delay: number }>>([]);
+  if (stars.current.length === 0) {
+    for (let i = 0; i < 80; i++) {
+      stars.current.push({
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        size: Math.random() * 2 + 0.5,
+        duration: Math.random() * 4 + 2,
+        delay: Math.random() * 5,
+      });
+    }
+  }
+  return (
+    <div className="stars-container">
+      {stars.current.map((star, i) => (
+        <div
+          key={i}
+          className="star"
+          style={{
+            left: `${star.x}%`,
+            top: `${star.y}%`,
+            width: `${star.size}px`,
+            height: `${star.size}px`,
+            '--duration': `${star.duration}s`,
+            '--delay': `${star.delay}s`,
+          } as React.CSSProperties}
+        />
+      ))}
+    </div>
+  );
+}
+
+// HUD Panel
+function HudPanel({
   icon: Icon,
   label,
   value,
   unit,
-  highlight = false,
+  colorClass = '',
   urgent = false,
+  bump = false,
 }: {
   icon: React.ElementType;
   label: string;
   value: number | string;
   unit?: string;
-  highlight?: boolean;
+  colorClass?: string;
   urgent?: boolean;
+  bump?: boolean;
 }) {
   return (
-    <div
-      className={`glass-card rounded-xl p-4 flex flex-col items-center gap-1 transition-all duration-300 ${
-        highlight ? 'border-primary/40 shadow-glow-sm' : ''
-      } ${urgent ? 'border-destructive/50' : ''}`}
-    >
-      <div className={`flex items-center gap-1.5 mb-1 ${urgent ? 'text-destructive' : 'text-muted-foreground'}`}>
-        <Icon size={14} />
-        <span className="text-xs font-medium uppercase tracking-wider">{label}</span>
+    <div className={`hud-panel p-2 flex flex-col items-center gap-0.5 transition-all duration-200 ${urgent ? 'hud-panel-urgent' : ''}`}>
+      <div className="flex items-center gap-1 mb-0.5">
+        <Icon size={10} className="text-muted-foreground" />
+        <span className="font-arcade text-[8px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</span>
       </div>
-      <div className={`font-mono text-2xl font-bold leading-none ${urgent ? 'text-destructive' : 'text-primary'}`}>
+      <div className={`font-arcade text-lg font-bold leading-none transition-all duration-150 ${urgent ? 'text-destructive' : colorClass || 'neon-text-cyan'} ${bump ? 'animate-multiplier-bump' : ''}`}>
         {value}
-        {unit && <span className="text-sm font-normal text-muted-foreground ml-1">{unit}</span>}
+        {unit && <span className="text-xs font-normal text-muted-foreground ml-0.5">{unit}</span>}
       </div>
     </div>
   );
 }
 
+// Lives display
+function LivesDisplay({ lives }: { lives: number }) {
+  return (
+    <div className="hud-panel p-2 flex flex-col items-center gap-0.5">
+      <div className="flex items-center gap-1 mb-0.5">
+        <Heart size={10} className="text-muted-foreground" />
+        <span className="font-arcade text-[8px] font-semibold uppercase tracking-widest text-muted-foreground">Lives</span>
+      </div>
+      <div className="flex gap-1">
+        {Array.from({ length: MAX_LIVES }).map((_, i) => (
+          <Heart
+            key={i}
+            size={14}
+            className={i < lives ? 'lives-heart-active' : 'lives-heart-lost'}
+            fill={i < lives ? 'currentColor' : 'none'}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Results Overlay
 function ResultsOverlay({
   stats,
+  score,
+  isGameOver,
   onRestart,
 }: {
-  stats: Stats;
+  stats: GameStats;
+  score: number;
+  isGameOver: boolean;
   onRestart: () => void;
 }) {
   const getGrade = (wpm: number) => {
-    if (wpm >= 80) return { label: 'Expert', color: 'text-primary' };
-    if (wpm >= 60) return { label: 'Advanced', color: 'text-accent' };
-    if (wpm >= 40) return { label: 'Intermediate', color: 'text-chart-4' };
-    if (wpm >= 20) return { label: 'Beginner', color: 'text-muted-foreground' };
-    return { label: 'Novice', color: 'text-muted-foreground' };
+    if (wpm >= 80) return { label: 'ELITE PILOT', colorClass: 'neon-text-magenta' };
+    if (wpm >= 60) return { label: 'ACE TYPIST', colorClass: 'neon-text-cyan' };
+    if (wpm >= 40) return { label: 'NAVIGATOR', colorClass: 'neon-text-green' };
+    if (wpm >= 20) return { label: 'CADET', colorClass: 'neon-text-yellow' };
+    return { label: 'RECRUIT', colorClass: 'text-muted-foreground' };
   };
-
   const grade = getGrade(stats.wpm);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-fade-in-up">
-      <div className="glass-card rounded-2xl p-8 max-w-md w-full text-center animate-scale-in border border-primary/20 shadow-glow">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 results-overlay animate-fade-in-up">
+      <div className="results-card rounded-none p-8 max-w-lg w-full text-center animate-scale-in relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-primary/60" />
+        <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-primary/60" />
+        <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-primary/60" />
+        <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-primary/60" />
+
         <div className="flex justify-center mb-4">
-          <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
-            <Trophy size={32} className="text-primary" />
+          <div className="w-16 h-16 flex items-center justify-center relative">
+            <div className="absolute inset-0 rounded-full border border-primary/30 animate-glow-pulse" />
+            {isGameOver ? (
+              <Crosshair size={32} className="neon-text-magenta relative z-10" />
+            ) : (
+              <Trophy size={32} className="neon-text-cyan relative z-10" />
+            )}
           </div>
         </div>
 
-        <h2 className="text-2xl font-bold text-foreground mb-1">Test Complete!</h2>
-        <p className={`text-sm font-semibold mb-6 ${grade.color}`}>{grade.label} Typist</p>
+        <h2 className={`font-arcade text-2xl font-bold mb-1 tracking-widest ${isGameOver ? 'neon-text-magenta' : 'neon-text-cyan'}`}>
+          {isGameOver ? 'GAME OVER' : 'MISSION COMPLETE'}
+        </h2>
+        <p className={`font-arcade text-sm font-semibold mb-6 ${grade.colorClass}`}>{grade.label}</p>
 
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="glass-card rounded-xl p-4 border border-primary/20">
-            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">WPM</div>
-            <div className="font-mono text-3xl font-bold text-primary">{stats.wpm}</div>
+        <div className="hud-panel hud-panel-magenta p-4 mb-4 text-center">
+          <div className="font-arcade text-xs text-muted-foreground uppercase tracking-widest mb-1">Final Score</div>
+          <div className="font-arcade text-4xl font-bold neon-text-magenta">{score.toLocaleString()}</div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 mb-3">
+          <div className="hud-panel p-3 text-center">
+            <div className="font-arcade text-[9px] text-muted-foreground uppercase tracking-widest mb-1">WPM</div>
+            <div className="font-arcade text-2xl font-bold neon-text-cyan">{stats.wpm}</div>
           </div>
-          <div className="glass-card rounded-xl p-4 border border-accent/20">
-            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">CPM</div>
-            <div className="font-mono text-3xl font-bold text-accent">{stats.cpm}</div>
+          <div className="hud-panel hud-panel-green p-3 text-center">
+            <div className="font-arcade text-[9px] text-muted-foreground uppercase tracking-widest mb-1">ACC</div>
+            <div className="font-arcade text-2xl font-bold neon-text-green">{stats.accuracy}%</div>
           </div>
-          <div className="glass-card rounded-xl p-4 border border-chart-4/20">
-            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">ACC</div>
-            <div className="font-mono text-3xl font-bold text-chart-4">{stats.accuracy}%</div>
+          <div className="hud-panel hud-panel-yellow p-3 text-center">
+            <div className="font-arcade text-[9px] text-muted-foreground uppercase tracking-widest mb-1">WORDS</div>
+            <div className="font-arcade text-2xl font-bold neon-text-yellow">{stats.wordsDestroyed}</div>
           </div>
         </div>
 
-        <div className="flex gap-3 text-sm text-muted-foreground mb-6 justify-center">
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-success inline-block"></span>
-            {stats.correctChars} correct
+        <div className="flex gap-4 text-xs text-muted-foreground mb-6 justify-center font-arcade tracking-wider">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-green-400 inline-block shadow-glow-green" />
+            {stats.correctChars} HITS
           </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-destructive inline-block"></span>
-            {stats.wrongChars} errors
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
+            {stats.wrongChars} MISSES
           </span>
         </div>
 
-        <button
-          onClick={onRestart}
-          className="w-full flex items-center justify-center gap-2 bg-primary/90 hover:bg-primary text-primary-foreground font-semibold py-3 px-6 rounded-xl transition-all duration-200 hover:shadow-glow active:scale-95"
-        >
-          <RotateCcw size={16} />
-          Play Again
+        <button onClick={onRestart} className="neon-btn w-full flex items-center justify-center gap-2 py-3 px-6 active:scale-95">
+          <RotateCcw size={14} />
+          PLAY AGAIN
         </button>
       </div>
     </div>
   );
 }
 
+// Idle / Start Screen
+function StartScreen({ onStart }: { onStart: () => void }) {
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+      <div className="results-card rounded-none p-8 max-w-md w-full text-center relative overflow-hidden animate-fade-in-up">
+        <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-primary/60" />
+        <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-primary/60" />
+        <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-primary/60" />
+        <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-primary/60" />
+
+        <div className="flex justify-center mb-4">
+          <div className="w-16 h-16 flex items-center justify-center relative">
+            <div className="absolute inset-0 rounded-full border border-primary/30 animate-glow-pulse" />
+            <Target size={32} className="neon-text-cyan relative z-10" />
+          </div>
+        </div>
+
+        <h1 className="font-arcade text-3xl font-bold neon-text-cyan mb-1 tracking-widest animate-neon-flicker">
+          Z-TYPE
+        </h1>
+        <p className="font-arcade text-xs text-muted-foreground mb-8 tracking-wider">WORD DESTROYER</p>
+
+        <div className="hud-panel p-4 mb-6 text-left">
+          <p className="font-arcade text-[9px] text-muted-foreground uppercase tracking-widest mb-2">How to Play</p>
+          <ul className="font-mono-code text-xs text-muted-foreground space-y-1">
+            <li>• Words fall from the top of the screen</li>
+            <li>• Type the first letter to lock on</li>
+            <li>• Complete the word to destroy it</li>
+            <li>• Don't let words reach the bottom!</li>
+            <li>• Build streaks for score multipliers</li>
+          </ul>
+        </div>
+
+        <button onClick={onStart} className="neon-btn w-full flex items-center justify-center gap-2 py-3 px-6 active:scale-95">
+          <Zap size={14} />
+          LAUNCH MISSION
+        </button>
+      </div>
+    </div>
+  );
+}
+
+let wordIdCounter = 0;
+
 export default function App() {
-  const [paragraph, setParagraph] = useState<string>(() => getRandomParagraph());
-  const [typedChars, setTypedChars] = useState<string[]>([]);
-  const [gameState, setGameState] = useState<GameState>('idle');
-  const [timeLeft, setTimeLeft] = useState(60);
-  const [stats, setStats] = useState<Stats>({ wpm: 0, cpm: 0, accuracy: 0, correctChars: 0, wrongChars: 0, totalTyped: 0 });
-  const [isFocused, setIsFocused] = useState(false);
+  const [gamePhase, setGamePhase] = useState<GamePhase>('idle');
+  const [lives, setLives] = useState<number>(MAX_LIVES);
+  const [score, setScore] = useState<number>(0);
+  const [streak, setStreak] = useState<number>(0);
+  const [multiplier, setMultiplier] = useState<number>(1);
+  const [multiplierBump, setMultiplierBump] = useState<boolean>(false);
+  const [difficultyLevel, setDifficultyLevel] = useState<number>(1);
+  const [stats, setStats] = useState<GameStats>({ wpm: 0, accuracy: 100, correctChars: 0, wrongChars: 0, wordsDestroyed: 0 });
+  const [fallingWords, setFallingWords] = useState<FallingWordType[]>([]);
+  const [targetedWordId, setTargetedWordId] = useState<number | null>(null);
+  const [typedText, setTypedText] = useState<string>('');
+  const [hasError, setHasError] = useState<boolean>(false);
+  const [scorePopups, setScorePopups] = useState<ScorePopup[]>([]);
+  const [comboNotifications, setComboNotifications] = useState<ComboNotification[]>([]);
+  const [flashOverlay, setFlashOverlay] = useState<string | null>(null);
+  const [screenShake, setScreenShake] = useState<boolean>(false);
+  const [lifeVignette, setLifeVignette] = useState<boolean>(false);
+  const [isGameOver, setIsGameOver] = useState<boolean>(false);
 
-  const inputRef = useRef<HTMLInputElement>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Refs for animation loop
+  const gamePhaseRef = useRef<GamePhase>('idle');
+  const fallingWordsRef = useRef<FallingWordType[]>([]);
+  const targetedWordIdRef = useRef<number | null>(null);
+  const typedTextRef = useRef<string>('');
+  const livesRef = useRef<number>(MAX_LIVES);
+  const scoreRef = useRef<number>(0);
+  const streakRef = useRef<number>(0);
+  const correctCharsRef = useRef<number>(0);
+  const wrongCharsRef = useRef<number>(0);
+  const wordsDestroyedRef = useRef<number>(0);
+  const difficultyLevelRef = useRef<number>(1);
   const elapsedRef = useRef<number>(0);
-  // Use a ref to track game state inside interval callbacks to avoid stale closures
-  const gameStateRef = useRef<GameState>('idle');
+  const gameStartTimeRef = useRef<number>(0);
+  const comboIdRef = useRef<number>(0);
+  const popupIdRef = useRef<number>(0);
+  const lastFrameTimeRef = useRef<number>(0);
+  const animFrameRef = useRef<number>(0);
+  const spawnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // React 19: useRef<T>(null) returns RefObject<T | null>
+  const inputRef = useRef<HTMLInputElement>(null);
+  const playFieldRef = useRef<HTMLDivElement>(null);
 
-  const calculateStats = useCallback((typed: string[], elapsed: number, para: string) => {
-    const totalTyped = typed.length;
-    let correctChars = 0;
-    let wrongChars = 0;
+  // Sync refs
+  useEffect(() => { fallingWordsRef.current = fallingWords; }, [fallingWords]);
+  useEffect(() => { targetedWordIdRef.current = targetedWordId; }, [targetedWordId]);
+  useEffect(() => { typedTextRef.current = typedText; }, [typedText]);
 
-    typed.forEach((char, i) => {
-      if (char === para[i]) {
-        correctChars++;
-      } else {
-        wrongChars++;
-      }
-    });
-
-    const minutes = elapsed / 60;
-    const wpm = minutes > 0 ? Math.round((correctChars / 5) / minutes) : 0;
-    const cpm = minutes > 0 ? Math.round(correctChars / minutes) : 0;
-    const accuracy = totalTyped > 0 ? Math.round((correctChars / totalTyped) * 100) : 100;
-
-    return { wpm, cpm, accuracy, correctChars, wrongChars, totalTyped };
+  const triggerCombo = useCallback((newMultiplier: number) => {
+    const id = ++comboIdRef.current;
+    let label = '';
+    let colorClass = '';
+    let flashClass = '';
+    if (newMultiplier === 2) { label = 'COMBO x2!'; colorClass = 'neon-text-green'; flashClass = 'combo-flash-green'; }
+    else if (newMultiplier === 3) { label = 'COMBO x3!'; colorClass = 'neon-text-cyan'; flashClass = 'combo-flash-cyan'; }
+    else if (newMultiplier >= 5) { label = 'COMBO x5!!'; colorClass = 'neon-text-magenta'; flashClass = 'combo-flash-magenta'; }
+    if (label) {
+      setComboNotifications(prev => [...prev, { id, label, colorClass, flashClass }]);
+      setFlashOverlay(flashClass);
+      setTimeout(() => setComboNotifications(prev => prev.filter(n => n.id !== id)), 1200);
+      setTimeout(() => setFlashOverlay(null), 500);
+      setMultiplierBump(true);
+      setTimeout(() => setMultiplierBump(false), 400);
+    }
   }, []);
 
-  const endGame = useCallback((typed: string[], para: string) => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    const finalStats = calculateStats(typed, 60, para);
-    setStats(finalStats);
-    gameStateRef.current = 'finished';
-    setGameState('finished');
-  }, [calculateStats]);
+  const spawnWord = useCallback(() => {
+    if (gamePhaseRef.current !== 'playing') return;
+    const level = difficultyLevelRef.current;
+    const config = getDifficultyConfig(level);
+    const text = getWordForLevel(level);
+    const speedVariance = 0.8 + Math.random() * 0.4;
+    const newWord: FallingWordType = {
+      id: ++wordIdCounter,
+      text,
+      x: 8 + Math.random() * 84,
+      y: -30,
+      speed: config.baseSpeed * speedVariance,
+      status: 'falling',
+      typedIndex: 0,
+    };
+    setFallingWords(prev => [...prev, newWord]);
+  }, []);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Use the ref to check game state to avoid stale closure issues
-    if (gameStateRef.current === 'finished') return;
+  const startSpawner = useCallback((level: number) => {
+    if (spawnTimerRef.current) clearInterval(spawnTimerRef.current);
+    const config = getDifficultyConfig(level);
+    spawnTimerRef.current = setInterval(() => {
+      spawnWord();
+    }, config.spawnInterval);
+  }, [spawnWord]);
 
-    // Start timer on first keypress of a printable character
-    if (gameStateRef.current === 'idle' && e.key.length === 1) {
-      gameStateRef.current = 'playing';
-      setGameState('playing');
-      elapsedRef.current = 0;
+  const triggerLifeLoss = useCallback(() => {
+    setScreenShake(true);
+    setLifeVignette(true);
+    setTimeout(() => setScreenShake(false), 600);
+    setTimeout(() => setLifeVignette(false), 800);
+  }, []);
 
-      timerRef.current = setInterval(() => {
-        elapsedRef.current += 1;
-        setTimeLeft(prev => {
-          const next = prev - 1;
-          if (next <= 0) {
-            setTypedChars(current => {
-              endGame(current, paragraph);
-              return current;
-            });
-            return 0;
-          }
-          return next;
-        });
-      }, 1000);
-    }
+  const endGame = useCallback((gameOver: boolean) => {
+    gamePhaseRef.current = 'finished';
+    setGamePhase('finished');
+    setIsGameOver(gameOver);
+    if (spawnTimerRef.current) { clearInterval(spawnTimerRef.current); spawnTimerRef.current = null; }
+    cancelAnimationFrame(animFrameRef.current);
 
-    setTypedChars(prev => {
-      let next = [...prev];
+    // Use elapsed time since game start for WPM calculation
+    const elapsed = gameStartTimeRef.current > 0
+      ? (performance.now() - gameStartTimeRef.current) / 1000
+      : elapsedRef.current > 0 ? elapsedRef.current : 1;
+    const minutes = Math.max(elapsed, 1) / 60;
+    const wpm = Math.round(wordsDestroyedRef.current / minutes);
+    const totalTyped = correctCharsRef.current + wrongCharsRef.current;
+    const accuracy = totalTyped > 0 ? Math.round((correctCharsRef.current / totalTyped) * 100) : 100;
+    setStats({
+      wpm,
+      accuracy,
+      correctChars: correctCharsRef.current,
+      wrongChars: wrongCharsRef.current,
+      wordsDestroyed: wordsDestroyedRef.current,
+    });
+  }, []);
 
-      if (e.key === 'Backspace') {
-        if (next.length > 0) {
-          next = next.slice(0, -1);
+  // Animation loop
+  const animationLoop = useCallback((timestamp: number) => {
+    if (gamePhaseRef.current !== 'playing') return;
+    const delta = lastFrameTimeRef.current ? (timestamp - lastFrameTimeRef.current) / 1000 : 0.016;
+    lastFrameTimeRef.current = timestamp;
+
+    // Track elapsed time for WPM
+    elapsedRef.current += delta;
+
+    setFallingWords(prev => {
+      const updated: FallingWordType[] = [];
+      let livesLost = 0;
+
+      for (const word of prev) {
+        // Keep destroying words briefly (they get cleaned up by the useEffect below)
+        if (word.status === 'destroying') {
+          updated.push(word);
+          continue;
         }
-      } else if (e.key.length === 1 && next.length < paragraph.length) {
-        next = [...next, e.key];
+        // Skip already-missed words
+        if (word.status === 'missed') {
+          continue;
+        }
 
-        // Check if paragraph is complete
-        if (next.length === paragraph.length) {
-          setTimeout(() => endGame(next, paragraph), 50);
+        // word.status is now narrowed to 'falling' | 'targeted'
+        const newY = word.y + word.speed * delta;
+
+        if (newY >= WORD_BOTTOM_THRESHOLD) {
+          // Word reached the bottom — lose a life
+          livesLost++;
+          // If this was the targeted word, clear targeting
+          if (targetedWordIdRef.current === word.id) {
+            targetedWordIdRef.current = null;
+          }
+          continue; // drop the word
+        }
+
+        updated.push({ ...word, y: newY });
+      }
+
+      if (livesLost > 0) {
+        const newLives = Math.max(0, livesRef.current - livesLost);
+        livesRef.current = newLives;
+        setLives(newLives);
+        triggerLifeLoss();
+        // Reset streak on life loss
+        streakRef.current = 0;
+        setStreak(0);
+        setMultiplier(1);
+        if (newLives <= 0) {
+          // Schedule endGame after state update
+          setTimeout(() => endGame(true), 50);
         }
       }
 
-      // Update stats in real-time
-      const elapsed = elapsedRef.current > 0 ? elapsedRef.current : 1;
-      const newStats = calculateStats(next, elapsed, paragraph);
-      setStats(newStats);
-
-      return next;
+      return updated;
     });
 
-    e.preventDefault();
-  }, [paragraph, calculateStats, endGame]);
+    animFrameRef.current = requestAnimationFrame(animationLoop);
+  }, [triggerLifeLoss, endGame]);
 
-  const restart = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
+  // Clean up destroying words after animation
+  useEffect(() => {
+    const destroyingWords = fallingWords.filter(w => w.status === 'destroying');
+    if (destroyingWords.length === 0) return;
+    const timer = setTimeout(() => {
+      setFallingWords(prev => prev.filter(w => w.status !== 'destroying'));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [fallingWords]);
+
+  // Difficulty scaling: increase level every 10 words destroyed
+  useEffect(() => {
+    const newLevel = Math.min(10, 1 + Math.floor(wordsDestroyedRef.current / 10));
+    if (newLevel !== difficultyLevelRef.current) {
+      difficultyLevelRef.current = newLevel;
+      setDifficultyLevel(newLevel);
+      if (gamePhase === 'playing') {
+        startSpawner(newLevel);
+      }
     }
-    const newParagraph = getRandomParagraph(paragraph);
-    setParagraph(newParagraph);
-    setTypedChars([]);
-    gameStateRef.current = 'idle';
-    setGameState('idle');
-    setTimeLeft(60);
-    setStats({ wpm: 0, cpm: 0, accuracy: 0, correctChars: 0, wrongChars: 0, totalTyped: 0 });
+  }, [stats.wordsDestroyed, gamePhase, startSpawner]);
+
+  const startGame = useCallback(() => {
+    // Reset all state
+    wordIdCounter = 0;
+    gamePhaseRef.current = 'playing';
+    livesRef.current = MAX_LIVES;
+    scoreRef.current = 0;
+    streakRef.current = 0;
+    correctCharsRef.current = 0;
+    wrongCharsRef.current = 0;
+    wordsDestroyedRef.current = 0;
+    difficultyLevelRef.current = 1;
     elapsedRef.current = 0;
-    setTimeout(() => inputRef.current?.focus(), 50);
-  }, [paragraph]);
+    gameStartTimeRef.current = performance.now();
+    lastFrameTimeRef.current = 0;
+    targetedWordIdRef.current = null;
+    typedTextRef.current = '';
+
+    setGamePhase('playing');
+    setLives(MAX_LIVES);
+    setScore(0);
+    setStreak(0);
+    setMultiplier(1);
+    setDifficultyLevel(1);
+    setFallingWords([]);
+    setTargetedWordId(null);
+    setTypedText('');
+    setHasError(false);
+    setScorePopups([]);
+    setComboNotifications([]);
+    setFlashOverlay(null);
+    setScreenShake(false);
+    setLifeVignette(false);
+    setIsGameOver(false);
+    setStats({ wpm: 0, accuracy: 100, correctChars: 0, wrongChars: 0, wordsDestroyed: 0 });
+
+    // Start spawner and animation loop
+    startSpawner(1);
+    spawnWord(); // spawn first word immediately
+    animFrameRef.current = requestAnimationFrame(animationLoop);
+
+    // Focus input
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }, [startSpawner, spawnWord, animationLoop]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (spawnTimerRef.current) clearInterval(spawnTimerRef.current);
+      cancelAnimationFrame(animFrameRef.current);
     };
   }, []);
 
-  // Focus input on mount
-  useEffect(() => {
-    inputRef.current?.focus();
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (gamePhaseRef.current !== 'playing') return;
+    const value = e.target.value;
+    const currentWords = fallingWordsRef.current;
+    const currentTargetId = targetedWordIdRef.current;
+
+    // If no target, try to lock on by first character
+    if (currentTargetId === null) {
+      if (value.length === 0) return;
+      const firstChar = value[0].toLowerCase();
+      // Find a falling word that starts with this character
+      const candidate = currentWords.find(
+        w => (w.status === 'falling' || w.status === 'targeted') && w.text[0].toLowerCase() === firstChar
+      );
+      if (candidate) {
+        targetedWordIdRef.current = candidate.id;
+        setTargetedWordId(candidate.id);
+        // Check if the typed char matches
+        if (candidate.text[0].toLowerCase() === firstChar) {
+          correctCharsRef.current++;
+          setFallingWords(prev =>
+            prev.map(w =>
+              w.id === candidate.id
+                ? { ...w, status: 'targeted', typedIndex: 1 }
+                : w.status === 'targeted' ? { ...w, status: 'falling' } : w
+            )
+          );
+          setTypedText(value);
+          typedTextRef.current = value;
+          setHasError(false);
+        } else {
+          wrongCharsRef.current++;
+          setHasError(true);
+          setTimeout(() => setHasError(false), 300);
+          setTypedText('');
+          typedTextRef.current = '';
+          e.target.value = '';
+        }
+      } else {
+        // No match
+        wrongCharsRef.current++;
+        setHasError(true);
+        setTimeout(() => setHasError(false), 300);
+        setTypedText('');
+        typedTextRef.current = '';
+        e.target.value = '';
+      }
+      return;
+    }
+
+    // We have a target — validate typed text against target word
+    const targetWord = currentWords.find(w => w.id === currentTargetId);
+    if (!targetWord) {
+      // Target disappeared
+      targetedWordIdRef.current = null;
+      setTargetedWordId(null);
+      setTypedText('');
+      typedTextRef.current = '';
+      e.target.value = '';
+      return;
+    }
+
+    const expectedPrefix = targetWord.text.slice(0, value.length).toLowerCase();
+    const typedLower = value.toLowerCase();
+
+    if (typedLower === expectedPrefix) {
+      // Correct so far
+      const newChars = value.length - typedTextRef.current.length;
+      if (newChars > 0) correctCharsRef.current += newChars;
+      setTypedText(value);
+      typedTextRef.current = value;
+      setHasError(false);
+
+      setFallingWords(prev =>
+        prev.map(w =>
+          w.id === currentTargetId ? { ...w, typedIndex: value.length } : w
+        )
+      );
+
+      // Check if word is complete
+      if (value.length >= targetWord.text.length) {
+        // Word destroyed!
+        wordsDestroyedRef.current++;
+        const newStreak = streakRef.current + 1;
+        streakRef.current = newStreak;
+        const newMultiplier = getMultiplier(newStreak);
+        const prevMultiplier = getMultiplier(newStreak - 1);
+
+        const basePoints = targetWord.text.length * 10;
+        const points = basePoints * newMultiplier;
+        scoreRef.current += points;
+        setScore(scoreRef.current);
+        setStreak(newStreak);
+
+        if (newMultiplier !== prevMultiplier) {
+          setMultiplier(newMultiplier);
+          triggerCombo(newMultiplier);
+        }
+
+        // Floating score popup
+        const popupId = ++popupIdRef.current;
+        setScorePopups(prev => [...prev, { id: popupId, x: targetWord.x, y: targetWord.y, points }]);
+        setTimeout(() => setScorePopups(prev => prev.filter(p => p.id !== popupId)), 1000);
+
+        // Mark word as destroying
+        setFallingWords(prev =>
+          prev.map(w => w.id === currentTargetId ? { ...w, status: 'destroying' } : w)
+        );
+
+        // Update difficulty based on words destroyed
+        const newLevel = Math.min(10, 1 + Math.floor(wordsDestroyedRef.current / 10));
+        if (newLevel !== difficultyLevelRef.current) {
+          difficultyLevelRef.current = newLevel;
+          setDifficultyLevel(newLevel);
+          startSpawner(newLevel);
+        }
+
+        // Clear targeting
+        targetedWordIdRef.current = null;
+        setTargetedWordId(null);
+        setTypedText('');
+        typedTextRef.current = '';
+        e.target.value = '';
+      }
+    } else {
+      // Wrong character
+      wrongCharsRef.current++;
+      setHasError(true);
+      setTimeout(() => setHasError(false), 300);
+      // Revert to last correct state
+      const correctText = typedTextRef.current;
+      setTypedText(correctText);
+      e.target.value = correctText;
+    }
+  }, [triggerCombo, startSpawner]);
+
+  const handleKeyDown = useCallback((_e: React.KeyboardEvent<HTMLInputElement>) => {
+    // No special key handling needed currently
   }, []);
 
-  const isUrgent = timeLeft <= 10 && gameState === 'playing';
-
-  const renderParagraph = () => {
-    return paragraph.split('').map((char, i) => {
-      let className = 'char-pending';
-      if (i < typedChars.length) {
-        className = typedChars[i] === char ? 'char-correct' : 'char-wrong';
-      } else if (i === typedChars.length) {
-        className = 'char-current';
-      }
-      return (
-        <span key={i} className={className}>
-          {char}
-        </span>
-      );
-    });
-  };
-
-  const progressPercent = (typedChars.length / paragraph.length) * 100;
+  const targetedWord = fallingWords.find(w => w.id === targetedWordId) ?? null;
+  const multiplierClass = getMultiplierClass(multiplier);
 
   return (
-    <div className="gradient-bg min-h-screen flex flex-col">
+    <div className={`game-root min-h-screen flex flex-col ${screenShake ? 'screen-shake' : ''}`}>
+      <Starfield />
+      {lifeVignette && <div className="life-loss-vignette" />}
+      {flashOverlay && <div className={`combo-flash-overlay ${flashOverlay}`} />}
+
       {/* Header */}
-      <header className="border-b border-border/30 backdrop-blur-sm bg-background/20 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center">
-              <Keyboard size={16} className="text-primary" />
-            </div>
-            <div>
-              <h1 className="text-sm font-bold text-foreground leading-none">TypeSpeed</h1>
-              <p className="text-xs text-muted-foreground">Typing Speed Test</p>
-            </div>
-          </div>
-          <button
-            onClick={restart}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border/50 hover:border-border rounded-lg px-3 py-1.5 transition-all duration-200 hover:bg-secondary/50"
-          >
-            <RotateCcw size={12} />
-            Restart
-          </button>
+      <header className="relative z-10 flex items-center justify-between px-6 py-3 border-b border-border/40">
+        <div className="flex items-center gap-2">
+          <Target size={18} className="neon-text-cyan" />
+          <span className="font-arcade text-sm font-bold neon-text-cyan tracking-widest">Z-TYPE</span>
         </div>
+        <div className="font-arcade text-[10px] text-muted-foreground tracking-widest uppercase">Word Destroyer</div>
       </header>
 
-      {/* Main */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-8">
-        <div className="w-full max-w-4xl space-y-6 animate-fade-in-up">
+      {/* HUD */}
+      {gamePhase === 'playing' && (
+        <div className="relative z-10 flex items-center justify-center gap-2 px-4 py-2 flex-wrap">
+          <HudPanel icon={Trophy} label="Score" value={score.toLocaleString()} colorClass="neon-text-magenta" />
+          <HudPanel
+            icon={TrendingUp}
+            label="Streak"
+            value={`x${multiplier}`}
+            colorClass={multiplierClass}
+            bump={multiplierBump}
+          />
+          <LivesDisplay lives={lives} />
+          <HudPanel icon={Zap} label="WPM" value={stats.wpm} colorClass="neon-text-cyan" />
+          <HudPanel icon={Target} label="Level" value={difficultyLevel} colorClass="neon-text-yellow" />
+        </div>
+      )}
 
-          {/* Title */}
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-foreground mb-1">
-              {gameState === 'idle'
-                ? 'Ready to type?'
-                : gameState === 'playing'
-                ? 'Keep going!'
-                : "Time's up!"}
-            </h2>
-            <p className="text-muted-foreground text-sm">
-              {gameState === 'idle'
-                ? 'Start typing to begin the 60-second test'
-                : gameState === 'playing'
-                ? 'Type the text below as fast and accurately as you can'
-                : 'Great effort! Check your results below.'}
-            </p>
-          </div>
+      {/* Play field */}
+      <main className="relative z-10 flex-1 flex flex-col">
+        <div
+          ref={playFieldRef}
+          className="play-field relative flex-1 mx-4 mb-2 overflow-hidden"
+          style={{ height: PLAY_FIELD_HEIGHT }}
+        >
+          <div className="danger-line" />
 
-          {/* Stats Row */}
-          <div className="grid grid-cols-4 gap-3">
-            <StatCard
-              icon={Clock}
-              label="Time"
-              value={timeLeft}
-              unit="s"
-              urgent={isUrgent}
+          {fallingWords.map(word => (
+            <FallingWord
+              key={word.id}
+              word={word}
+              isTargeted={word.id === targetedWordId}
             />
-            <StatCard
-              icon={Zap}
-              label="WPM"
-              value={stats.wpm}
-              highlight={gameState === 'playing'}
-            />
-            <StatCard
-              icon={Keyboard}
-              label="CPM"
-              value={stats.cpm}
-            />
-            <StatCard
-              icon={Target}
-              label="Accuracy"
-              value={stats.accuracy}
-              unit="%"
-            />
-          </div>
+          ))}
 
-          {/* Progress Bar */}
-          <div className="w-full h-1.5 bg-secondary/50 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
+          {scorePopups.map(popup => (
+            <FloatingScorePopup key={popup.id} popup={popup} />
+          ))}
 
-          {/* Typing Area */}
-          <div
-            className={`glass-card rounded-2xl p-6 border transition-all duration-300 cursor-text ${
-              isFocused ? 'typing-area-focused' : 'border-border/40'
-            } ${gameState === 'finished' ? 'opacity-50 pointer-events-none' : ''}`}
-            onClick={() => inputRef.current?.focus()}
-          >
-            {/* Paragraph Display */}
-            <div
-              className="font-mono-code text-lg leading-relaxed tracking-wide select-none mb-4"
-              style={{ lineHeight: '2.2rem' }}
-            >
-              {renderParagraph()}
-            </div>
-
-            {/* Hidden Input */}
-            <input
-              ref={inputRef}
-              type="text"
-              className="sr-only"
-              onKeyDown={handleKeyDown}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              readOnly={gameState === 'finished'}
-              aria-label="Typing input"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-            />
-
-            {/* Click to focus hint */}
-            {!isFocused && gameState !== 'finished' && (
-              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground/60 mt-2">
-                <Keyboard size={12} />
-                <span>Click here or press any key to focus</span>
+          {/* Combo notifications */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-none z-20">
+            {comboNotifications.map(n => (
+              <div key={n.id} className={`font-arcade text-lg font-bold tracking-widest combo-notification ${n.colorClass}`}>
+                {n.label}
               </div>
-            )}
-
-            {/* Typing indicator */}
-            {isFocused && gameState === 'playing' && (
-              <div className="flex items-center gap-2 text-xs text-primary/60 mt-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse inline-block"></span>
-                <span>Typing in progress...</span>
-              </div>
-            )}
-          </div>
-
-          {/* Restart Button */}
-          <div className="flex justify-center">
-            <button
-              onClick={restart}
-              className="flex items-center gap-2 bg-secondary/80 hover:bg-secondary text-foreground font-medium py-2.5 px-6 rounded-xl border border-border/50 hover:border-border transition-all duration-200 hover:shadow-glow-sm active:scale-95 text-sm"
-            >
-              <RotateCcw size={14} />
-              Restart Game
-            </button>
-          </div>
-
-          {/* Legend */}
-          <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm char-correct inline-block"></span>
-              Correct
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm char-wrong inline-block"></span>
-              Incorrect
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm char-current inline-block"></span>
-              Current
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm char-pending inline-block bg-muted/30"></span>
-              Pending
-            </span>
+            ))}
           </div>
         </div>
+
+        {/* Input bar */}
+        {gamePhase === 'playing' && (
+          <GameInputBar
+            typedText={typedText}
+            targetWordText={targetedWord ? targetedWord.text : null}
+            hasError={hasError}
+            inputRef={inputRef}
+            onInputChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+          />
+        )}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/20 py-4 px-4">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span>© {new Date().getFullYear()} TypeSpeed — Typing Speed Test</span>
-          <span className="flex items-center gap-1">
-            Built with <Heart size={11} className="text-destructive fill-destructive mx-0.5" /> using{' '}
-            <a
-              href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(typeof window !== 'undefined' ? window.location.hostname : 'typing-speed-test')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              caffeine.ai
-            </a>
-          </span>
-        </div>
+      <footer className="relative z-10 flex items-center justify-center py-2 border-t border-border/40">
+        <p className="font-arcade text-[9px] text-muted-foreground tracking-wider">
+          © {new Date().getFullYear()} Built with{' '}
+          <span className="neon-text-magenta">♥</span>{' '}
+          using{' '}
+          <a
+            href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(typeof window !== 'undefined' ? window.location.hostname : 'unknown-app')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="neon-text-cyan hover:underline"
+          >
+            caffeine.ai
+          </a>
+        </p>
       </footer>
 
-      {/* Results Overlay */}
-      {gameState === 'finished' && (
-        <ResultsOverlay stats={stats} onRestart={restart} />
+      {/* Overlays */}
+      {gamePhase === 'idle' && (
+        <StartScreen onStart={startGame} />
+      )}
+
+      {gamePhase === 'finished' && (
+        <ResultsOverlay
+          stats={stats}
+          score={score}
+          isGameOver={isGameOver}
+          onRestart={startGame}
+        />
       )}
     </div>
   );

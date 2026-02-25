@@ -1,36 +1,40 @@
 {
   "kind": "build_request",
-  "title": "Change cursor/blink color",
+  "title": "Remove timer/time display from the app",
+  "projectName": "ZType Arcade",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-8",
-      "text": "Change the blinking cursor indicator color on the current character position in the typing test. Update the relevant CSS keyframe animation and/or the `.current` character highlight class in `frontend/src/index.css` so the blinking cursor uses a distinct, visually appealing color (e.g., a bright accent such as amber/yellow or white) instead of the current color.",
+      "id": "REQ-19",
+      "text": "Remove all timer and time-related UI elements from the game. This includes the countdown timer display, the duration selector toggle buttons (15/30/60/120s), and any time-remaining HUD panel. The game should no longer end based on a timer; instead it runs until all lives are lost (game over condition remains lives-based only).",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-4"
         ],
         "quotes": [
-          "change the blink colour"
+          "remove the time in app"
         ]
       },
       "acceptanceCriteria": [
-        "The blinking cursor on the current character position uses a new, distinct color different from the previous one.",
-        "The blink animation still functions correctly (cursor visibly blinks/pulses).",
-        "The new color is consistent with the overall dark navy/cyan design theme.",
-        "No other character highlight states (correct/incorrect/pending) are affected."
+        "No countdown timer is visible anywhere in the HUD during gameplay.",
+        "No duration selector (15/30/60/120s toggle buttons) is displayed on the start screen or in the HUD.",
+        "The game does not end when a timer reaches zero; the only game-over condition is losing all lives.",
+        "All timer-related state variables and logic are removed or disabled in App.tsx.",
+        "The HUD still displays Score, Streak Multiplier, Lives, WPM, and Difficulty Level without any time element.",
+        "WPM calculation continues to function correctly without a fixed-duration timer (e.g., elapsed time since first keystroke is used internally but not displayed)."
       ]
     }
   ],
   "constraints": [
-    "Do not modify any files under frontend/src/hooks/ or frontend/src/main.tsx.",
-    "Do not alter the correct (green) or incorrect (red) character highlight colors."
+    "Do not remove or alter the lives system, score/streak system, difficulty scaling, or falling-words mechanic.",
+    "Do not modify any files under frontend/src/hooks/ or frontend/src/components/ui.",
+    "WPM must remain accurate using elapsed time since first keystroke internally, even though no timer is shown."
   ],
   "nonGoals": [
-    "Changing the overall color theme or gradient background.",
-    "Modifying any backend logic.",
-    "Adding new typing test features."
+    "Adding any new game modes or features beyond removing the timer.",
+    "Changing the visual theme or neon aesthetic.",
+    "Modifying backend logic."
   ],
   "imageRequirements": {
     "required": [],

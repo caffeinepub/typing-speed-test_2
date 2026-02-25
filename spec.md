@@ -1,9 +1,14 @@
 # Specification
 
 ## Summary
-**Goal:** Change the blinking cursor indicator color on the current character position in the typing test to a distinct, visually appealing accent color.
+**Goal:** Remove all timer and time-related UI elements from the ZType Arcade game so the only game-over condition is losing all lives.
 
 **Planned changes:**
-- Update the `.current` character highlight class and/or the CSS keyframe blink animation in `frontend/src/index.css` to use a new accent color (e.g., amber/yellow or white) that fits the dark navy/cyan design theme
+- Remove the countdown timer display from the HUD
+- Remove the duration selector toggle buttons (15s/30s/60s/120s) from the start screen and HUD
+- Remove any time-remaining HUD panel
+- Disable timer-based game-over logic so the game only ends when all lives are lost
+- Keep WPM calculation working internally using elapsed time since first keystroke (not displayed as a timer)
+- HUD continues to show Score, Streak Multiplier, Lives, WPM, and Difficulty Level
 
-**User-visible outcome:** The blinking cursor on the active character during a typing test displays in a new, distinct color while the blink animation continues to function correctly and correct/incorrect character colors remain unchanged.
+**User-visible outcome:** The game no longer shows a timer or duration selector. Players can play indefinitely until they run out of lives, with the HUD showing only score, streak, lives, WPM, and difficulty.

@@ -1,22 +1,29 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Change cursor/blink color",
+  "title": "Remove timer/time display from the app",
   "requirements": [
     {
-      "id": "REQ-8",
-      "summary": "Change the blinking cursor indicator color on the current character position in the typing test to a distinct, visually appealing color (e.g., amber/yellow or white) by updating the relevant CSS keyframe animation and/or `.current` character highlight class in frontend/src/index.css",
+      "id": "REQ-19",
+      "summary": "Remove all timer and time-related UI elements from the game, including countdown timer display, duration selector buttons (15/30/60/120s), and time-remaining HUD panel. The game should run until all lives are lost, with no timer-based game-over condition.",
       "acceptanceCriteria": [
-        "The blinking cursor on the current character position uses a new, distinct color different from the previous one.",
-        "The blink animation still functions correctly (cursor visibly blinks/pulses).",
-        "The new color is consistent with the overall dark navy/cyan design theme.",
-        "No other character highlight states (correct/incorrect/pending) are affected."
+        "No countdown timer is visible anywhere in the HUD during gameplay.",
+        "No duration selector (15/30/60/120s toggle buttons) is displayed on the start screen or in the HUD.",
+        "The game does not end when a timer reaches zero; the only game-over condition is losing all lives.",
+        "All timer-related state variables and logic are removed or disabled in App.tsx.",
+        "The HUD still displays Score, Streak Multiplier, Lives, WPM, and Difficulty Level without any time element.",
+        "WPM calculation continues to function correctly without a fixed-duration timer (e.g., elapsed time since first keystroke is used internally but not displayed)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/index.css",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Update the `.current` character highlight class and any associated keyframe animations (e.g., `@keyframes blink` or `@keyframes pulse`) to change the blinking cursor color from the current color to a bright accent color such as amber (oklch(0.85 0.15 85)) or white (oklch(1 0 0)). Ensure the animation timing and visibility remain unchanged, and verify that correct (green), incorrect (red), and pending character highlight classes are not affected by this change."
+          "description": "Remove all timer-related state variables (timeRemaining, selectedDuration, etc.), remove duration selector buttons from the start screen, remove countdown timer display from the HUD, remove timer-based game-over logic from the game loop (keep only lives-based game over), and ensure WPM calculation continues to work using elapsed time since first keystroke internally without displaying any timer."
+        },
+        {
+          "path": "frontend/src/types/game.ts",
+          "operation": "modify",
+          "description": "Remove the DurationOption type and any timer-related fields from GameStats or other game-related type definitions that reference time or duration selection."
         }
       ]
     }

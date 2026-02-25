@@ -1,10 +1,11 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 5,
-  "summary": "A modern Typing Speed Test Web App built with pure HTML, CSS, and JavaScript in a single file. Features a random paragraph display, 60-second countdown timer that starts on first keystroke, real-time WPM/CPM/accuracy calculation, green/red character highlighting, final results screen, restart button, responsive design, and a clean modern UI with gradient background.",
+  "projectStateVersion": 13,
+  "summary": "A modern Typing Speed Test Web App inspired by ZType/ZTypeGame, built with pure HTML, CSS, and JavaScript in a single file. The game now features a ZType-style gameplay mechanic where words fall from the top of the screen and the player must type them to 'fire' and destroy the words before they reach the bottom. Removes the paragraph typing structure in favor of individual falling words. Includes configurable countdown timer (15/30/60/120s), real-time WPM/CPM/accuracy, score/streak multiplier, neon gaming UI, and arcade-style HUD.",
   "architectural_notes": [
     "Single-file app: all HTML, CSS, and JS in one .html file",
-    "No frameworks or libraries — pure vanilla HTML/CSS/JS only"
+    "No frameworks or libraries — pure vanilla HTML/CSS/JS only",
+    "Gameplay is ZType-style: words spawn at the top and fall downward; typing the word destroys it — no paragraph structure"
   ],
   "known_issues": [],
   "isFixRequest": false,
@@ -72,6 +73,94 @@
         "REQ-8"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-allow-the-user-to-change-the-typing-test-duration-before-starting-a-session-provide-selectable-time-options-e-g-15-30-60-and-120-seconds-displayed-as-toggle-buttons-or-a-segmented-control-above-or-near-the-typing-area-the-selected-duration-should-replace-the-current-fixed-60-second-countdown-timer-the-timer-must-respect-the-newly-selected-duration-when-it-starts-on-first-keystroke-and-when-the-test-ends-the-currently-active-duration-option-should-be-visually-highlighted",
+      "title": "Allow the user to change the typing test duration before starting a session. Provide selectable time options (e.g., 15, 30, 60, and 120 seconds) displayed as toggle buttons or a segmented control above or near the typing area. The selected duration should replace the current fixed 60-second countdown timer. The timer must respect the newly selected duration when it starts (on first keystroke) and when the test ends. The currently active duration option should be visually highlighted.",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-redesign-the-entire-app-ui-to-match-a-ztype-inspired-dark-gaming-aesthetic-use-a-deep-space-dark-background-with-animated-particles-or-floating-elements-neon-glowing-text-effects-e-g-cyan-green-or-magenta-accents-arcade-style-typography-for-the-title-and-stats-and-pulsing-glow-effects-on-active-elements-the-typing-area-should-feel-like-a-game-hud-with-clearly-separated-stat-panels-styled-as-game-meters-or-displays",
+      "title": "Redesign the entire app UI to match a ZType-inspired dark gaming aesthetic: use a deep space/dark background with animated particles or floating elements, neon/glowing text effects (e.g., cyan, green, or magenta accents), arcade-style typography for the title and stats, and pulsing glow effects on active elements. The typing area should feel like a game HUD with clearly separated stat panels styled as game meters or displays.",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-live-score-counter-that-increases-as-the-user-types-correct-characters-implement-a-streak-multiplier-that-tracks-consecutive-correct-keystrokes-and-multiplies-score-gain-e-g-x1-base-x2-at-10-streak-x3-at-25-streak-x5-at-50-streak-display-both-the-current-score-and-the-current-streak-multiplier-prominently-in-the-game-hud-reset-streak-on-any-incorrect-keystroke",
+      "title": "Add a live Score counter that increases as the user types correct characters. Implement a Streak Multiplier that tracks consecutive correct keystrokes and multiplies score gain (e.g., x1 base, x2 at 10-streak, x3 at 25-streak, x5 at 50-streak). Display both the current score and the current streak multiplier prominently in the game HUD. Reset streak on any incorrect keystroke.",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-visual-combo-streak-burst-animation-when-the-user-hits-streak-multiplier-thresholds-e-g-a-brief-neon-flash-or-particle-burst-on-screen-to-reinforce-the-game-feel-reward-moment",
+      "title": "Add a visual combo/streak burst animation when the user hits streak multiplier thresholds (e.g., a brief neon flash or particle burst on screen) to reinforce the game-feel reward moment.",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-replace-the-paragraph-based-typing-structure-entirely-with-a-falling-words-arcade-mechanic-spawn-individual-words-at-random-horizontal-positions-along-the-top-of-the-screen-and-animate-them-falling-downward-toward-the-bottom-remove-all-paragraph-display-character-by-character-highlighting-and-static-text-input-area-from-the-current-ui",
+      "title": "Replace the paragraph-based typing structure entirely with a falling-words arcade mechanic: spawn individual words at random horizontal positions along the top of the screen, and animate them falling downward toward the bottom. Remove all paragraph display, character-by-character highlighting, and static text input area from the current UI.",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-the-fire-to-destroy-typing-mechanic-when-the-player-begins-typing-any-characters-that-match-the-start-of-a-falling-word-that-word-becomes-targeted-and-visually-highlighted-e-g-neon-glow-lock-on-effect-as-each-correct-character-is-typed-the-matching-prefix-of-the-word-lights-up-when-the-full-word-is-typed-correctly-it-is-instantly-destroyed-with-a-visual-explosion-burst-effect-and-removed-from-the-screen-mistyped-characters-do-not-advance-the-target-and-should-trigger-a-brief-error-flash",
+      "title": "Implement the 'fire to destroy' typing mechanic: when the player begins typing any characters that match the start of a falling word, that word becomes 'targeted' and visually highlighted (e.g., neon glow lock-on effect). As each correct character is typed the matching prefix of the word lights up. When the full word is typed correctly it is instantly destroyed with a visual explosion/burst effect and removed from the screen. Mistyped characters do not advance the target and should trigger a brief error flash.",
+      "reqIds": [
+        "REQ-14"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-difficulty-scaling-that-increases-the-game-challenge-over-time-words-should-fall-faster-as-the-session-progresses-e-g-speed-increases-every-15-20-seconds-or-every-n-words-destroyed-and-the-word-spawn-rate-should-also-increase-gradually-include-harder-longer-words-at-higher-difficulty-tiers-display-the-current-difficulty-level-or-speed-tier-in-the-hud",
+      "title": "Implement difficulty scaling that increases the game challenge over time: words should fall faster as the session progresses (e.g., speed increases every 15–20 seconds or every N words destroyed), and the word spawn rate should also increase gradually. Include harder/longer words at higher difficulty tiers. Display the current difficulty level or speed tier in the HUD.",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-immersive-game-feel-feedback-and-polish-for-a-realistic-gaming-experience-include-a-lives-or-health-system-where-the-player-loses-a-life-when-a-word-reaches-the-bottom-without-being-typed-trigger-screen-shake-or-a-red-vignette-flash-on-life-loss-play-visual-impact-effects-neon-burst-shockwave-ring-on-word-destruction-show-a-floating-score-popup-points-at-the-word-s-position-when-destroyed-display-a-game-over-screen-when-all-lives-are-lost-showing-final-score-wpm-accuracy-and-words-destroyed",
+      "title": "Add immersive game-feel feedback and polish for a realistic gaming experience: include a lives or health system where the player loses a life when a word reaches the bottom without being typed; trigger screen-shake or a red vignette flash on life loss; play visual impact effects (neon burst, shockwave ring) on word destruction; show a floating score popup (+points) at the word's position when destroyed; display a 'GAME OVER' screen when all lives are lost, showing final score, WPM, accuracy, and words destroyed.",
+      "reqIds": [
+        "REQ-16"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-redesign-the-input-experience-for-the-falling-words-mechanic-replace-the-static-typing-input-box-with-a-slim-neon-styled-input-bar-or-command-line-at-the-bottom-of-the-screen-game-hud-style-the-input-field-clears-automatically-after-each-word-is-successfully-destroyed-the-input-area-should-visually-indicate-the-current-target-word-and-display-what-the-player-has-typed-so-far-with-a-live-match-highlight",
+      "title": "Redesign the input experience for the falling-words mechanic: replace the static typing input box with a slim neon-styled input bar or command line at the bottom of the screen (game HUD style). The input field clears automatically after each word is successfully destroyed. The input area should visually indicate the current target word and display what the player has typed so far with a live match highlight.",
+      "reqIds": [
+        "REQ-17"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-hud-layout-to-suit-the-falling-words-arcade-format-retain-the-neon-gaming-aesthetic-and-display-score-streak-multiplier-lives-timer-duration-selector-wpm-and-current-difficulty-level-as-distinct-hud-panels-arranged-around-the-game-play-field-top-bar-and-or-side-panels-the-play-field-itself-the-area-where-words-fall-should-be-maximized-and-uncluttered",
+      "title": "Update the HUD layout to suit the falling-words arcade format: retain the neon/gaming aesthetic and display Score, Streak Multiplier, Lives, Timer/Duration selector, WPM, and current Difficulty Level as distinct HUD panels arranged around the game play field (top bar and/or side panels). The play field itself (the area where words fall) should be maximized and uncluttered.",
+      "reqIds": [
+        "REQ-18"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-all-timer-and-time-related-ui-elements-from-the-game-this-includes-the-countdown-timer-display-the-duration-selector-toggle-buttons-15-30-60-120s-and-any-time-remaining-hud-panel-the-game-should-no-longer-end-based-on-a-timer-instead-it-runs-until-all-lives-are-lost-game-over-condition-remains-lives-based-only",
+      "title": "Remove all timer and time-related UI elements from the game. This includes the countdown timer display, the duration selector toggle buttons (15/30/60/120s), and any time-remaining HUD panel. The game should no longer end based on a timer; instead it runs until all lives are lost (game over condition remains lives-based only).",
+      "reqIds": [
+        "REQ-19"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -122,9 +211,45 @@
       "summary": "Change the blink/cursor color",
       "reqIds": [],
       "status": "pending"
+    },
+    {
+      "id": "AR-9",
+      "summary": "Edit/change the test duration time (currently 60 seconds)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-10",
+      "summary": "Redesign UI to match ZType-style gaming aesthetic (dark theme, neon/glowing text, arcade-style typography, animated background)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-11",
+      "summary": "Add game-like elements such as a score counter, level progression, or streak multiplier to make it feel more like a game",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-12",
+      "summary": "Replace paragraph typing with ZType-style falling words mechanic — words fall from top to bottom, player types them to destroy/fire them before they reach the bottom",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-13",
+      "summary": "Realistic gaming experience with smooth word animations, difficulty scaling (speed increases over time), and immersive game-feel feedback",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-14",
+      "summary": "Remove the timer/time display from the app",
+      "reqIds": [],
+      "status": "pending"
     }
   ],
-  "gameProjectType": "none",
+  "gameProjectType": "2d",
   "projectName": "Typing Speed Test",
   "clarification_mode": "instant",
   "clarification_rounds": 0

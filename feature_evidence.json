@@ -2,10 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-change-the-blinking-cursor-indicator-color-on-the-current-character-position-in-the-typing-test-update-the-relevant-css-keyframe-animation-and-or-the-current-character-highlight-class-in-frontend-src-index-css-so-the-blinking-cursor-uses-a-distinct-visually-appealing-color-e-g-a-bright-accent-such-as-amber-yellow-or-white-instead-of-the-current-color",
-      "featureTitle": "Change the blinking cursor indicator color on the current character position in the typing test. Update the relevant CSS keyframe animation and/or the `.current` character highlight class in `frontend/src/index.css` so the blinking cursor uses a distinct, visually appealing color (e.g., a bright accent such as amber/yellow or white) instead of the current color.",
+      "featureId": "feature-remove-all-timer-and-time-related-ui-elements-from-the-game-this-includes-the-countdown-timer-display-the-duration-selector-toggle-buttons-15-30-60-120s-and-any-time-remaining-hud-panel-the-game-should-no-longer-end-based-on-a-timer-instead-it-runs-until-all-lives-are-lost-game-over-condition-remains-lives-based-only",
+      "featureTitle": "Remove all timer and time-related UI elements from the game. This includes the countdown timer display, the duration selector toggle buttons (15/30/60/120s), and any time-remaining HUD panel. The game should no longer end based on a timer; instead it runs until all lives are lost (game over condition remains lives-based only).",
       "files": [
-        "frontend/src/index.css"
+        "frontend/src/App.tsx",
+        "frontend/src/types/game.ts"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -15,7 +16,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-8"
+        "REQ-19"
       ],
       "confidence": "high"
     }
