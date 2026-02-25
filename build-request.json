@@ -1,0 +1,39 @@
+{
+  "kind": "build_request",
+  "title": "Change cursor/blink color",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-8",
+      "text": "Change the blinking cursor indicator color on the current character position in the typing test. Update the relevant CSS keyframe animation and/or the `.current` character highlight class in `frontend/src/index.css` so the blinking cursor uses a distinct, visually appealing color (e.g., a bright accent such as amber/yellow or white) instead of the current color.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "change the blink colour"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The blinking cursor on the current character position uses a new, distinct color different from the previous one.",
+        "The blink animation still functions correctly (cursor visibly blinks/pulses).",
+        "The new color is consistent with the overall dark navy/cyan design theme.",
+        "No other character highlight states (correct/incorrect/pending) are affected."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not modify any files under frontend/src/hooks/ or frontend/src/main.tsx.",
+    "Do not alter the correct (green) or incorrect (red) character highlight colors."
+  ],
+  "nonGoals": [
+    "Changing the overall color theme or gradient background.",
+    "Modifying any backend logic.",
+    "Adding new typing test features."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

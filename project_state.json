@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 5,
+  "summary": "A modern Typing Speed Test Web App built with pure HTML, CSS, and JavaScript in a single file. Features a random paragraph display, 60-second countdown timer that starts on first keystroke, real-time WPM/CPM/accuracy calculation, green/red character highlighting, final results screen, restart button, responsive design, and a clean modern UI with gradient background.",
+  "architectural_notes": [
+    "Single-file app: all HTML, CSS, and JS in one .html file",
+    "No frameworks or libraries — pure vanilla HTML/CSS/JS only"
+  ],
+  "known_issues": [],
+  "isFixRequest": false,
+  "existing_features": [
+    {
+      "id": "feature-display-a-randomly-selected-paragraph-from-a-curated-set-of-sample-texts-for-the-user-to-type-each-test-session-should-present-a-different-paragraph",
+      "title": "Display a randomly selected paragraph from a curated set of sample texts for the user to type. Each test session should present a different paragraph.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-60-second-countdown-timer-that-starts-automatically-when-the-user-types-the-first-character-display-the-remaining-time-prominently",
+      "title": "Implement a 60-second countdown timer that starts automatically when the user types the first character. Display the remaining time prominently.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-calculate-and-display-in-real-time-words-per-minute-wpm-characters-per-minute-cpm-and-accuracy-percentage-as-the-user-types",
+      "title": "Calculate and display in real-time: Words Per Minute (WPM), Characters Per Minute (CPM), and accuracy percentage as the user types.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-as-the-user-types-highlight-each-character-of-the-paragraph-correct-characters-highlighted-in-green-incorrect-characters-highlighted-in-red-the-current-character-position-should-be-visually-indicated-e-g-cursor-or-underline",
+      "title": "As the user types, highlight each character of the paragraph: correct characters highlighted in green, incorrect characters highlighted in red. The current character position should be visually indicated (e.g., cursor or underline).",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-when-the-60-second-timer-reaches-zero-stop-accepting-input-and-display-a-final-results-screen-showing-the-user-s-wpm-cpm-and-accuracy-for-that-session",
+      "title": "When the 60-second timer reaches zero, stop accepting input and display a final results screen showing the user's WPM, CPM, and accuracy for that session.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-provide-a-restart-game-button-that-resets-the-timer-clears-all-highlights-selects-a-new-random-paragraph-and-resets-all-stats-wpm-cpm-accuracy-to-their-initial-state",
+      "title": "Provide a 'Restart Game' button that resets the timer, clears all highlights, selects a new random paragraph, and resets all stats (WPM, CPM, accuracy) to their initial state.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-a-professional-modern-visual-theme-with-a-vibrant-gradient-background-clean-typography-well-spaced-stat-cards-and-smooth-ui-transitions-the-layout-must-be-fully-responsive-across-desktop-and-mobile-screen-sizes",
+      "title": "Apply a professional, modern visual theme with a vibrant gradient background, clean typography, well-spaced stat cards, and smooth UI transitions. The layout must be fully responsive across desktop and mobile screen sizes.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-change-the-blinking-cursor-indicator-color-on-the-current-character-position-in-the-typing-test-update-the-relevant-css-keyframe-animation-and-or-the-current-character-highlight-class-in-frontend-src-index-css-so-the-blinking-cursor-uses-a-distinct-visually-appealing-color-e-g-a-bright-accent-such-as-amber-yellow-or-white-instead-of-the-current-color",
+      "title": "Change the blinking cursor indicator color on the current character position in the typing test. Update the relevant CSS keyframe animation and/or the `.current` character highlight class in `frontend/src/index.css` so the blinking cursor uses a distinct, visually appealing color (e.g., a bright accent such as amber/yellow or white) instead of the current color.",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Show a random paragraph for the user to type",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "60-second countdown timer that starts when user begins typing",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Calculate and display WPM, CPM, and accuracy percentage in real-time",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Highlight correct characters in green and wrong characters in red",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Show final result screen when timer ends",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Restart Game button to reset the test",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Responsive design with clean modern UI and gradient background",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Change the blink/cursor color",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "Typing Speed Test",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

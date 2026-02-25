@@ -1,0 +1,24 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Change cursor/blink color",
+  "requirements": [
+    {
+      "id": "REQ-8",
+      "summary": "Change the blinking cursor indicator color on the current character position in the typing test to a distinct, visually appealing color (e.g., amber/yellow or white) by updating the relevant CSS keyframe animation and/or `.current` character highlight class in frontend/src/index.css",
+      "acceptanceCriteria": [
+        "The blinking cursor on the current character position uses a new, distinct color different from the previous one.",
+        "The blink animation still functions correctly (cursor visibly blinks/pulses).",
+        "The new color is consistent with the overall dark navy/cyan design theme.",
+        "No other character highlight states (correct/incorrect/pending) are affected."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/index.css",
+          "operation": "modify",
+          "description": "Update the `.current` character highlight class and any associated keyframe animations (e.g., `@keyframes blink` or `@keyframes pulse`) to change the blinking cursor color from the current color to a bright accent color such as amber (oklch(0.85 0.15 85)) or white (oklch(1 0 0)). Ensure the animation timing and visibility remain unchanged, and verify that correct (green), incorrect (red), and pending character highlight classes are not affected by this change."
+        }
+      ]
+    }
+  ]
+}

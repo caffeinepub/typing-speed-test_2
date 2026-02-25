@@ -1,0 +1,38 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-24T16:30:17.374Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 1,
+    "implemented": 1,
+    "items": [
+      {
+        "id": "REQ-8",
+        "summary": "Change the blinking cursor indicator color on the current character position in the typing test. Update the relevant CSS keyframe animation and/or the `.current` character highlight class in `frontend/src/index.css` so the blinking cursor uses a distinct, visually appealing color (e.g., a bright accent such as amber/yellow or white) instead of the current color.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/index.css"
+        ],
+        "matchedFiles": [
+          "frontend/src/index.css"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "build-request.json",
+    "build-template/README.md",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/index.css",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

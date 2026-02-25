@@ -1,0 +1,14 @@
+{
+  "backend/main.mo": "Empty Motoko actor serving as the backend canister placeholder with no implemented methods.",
+  "feature_evidence.json": "Feature evidence report confirming that the blinking cursor color in the typing test was updated to amber/yellow in frontend/src/index.css, with high confidence tied to test REQ-8.",
+  "frontend-file-summaries.txt": "JSON-formatted summaries of key frontend files, noting the amber/yellow cursor blink color update in index.css, Tailwind config details, and App.tsx typing test implementation fixes.",
+  "frontend/index.css": "Base Tailwind CSS file defining light and dark mode OKLCH CSS custom properties for the shadcn-ui design system, with no app-specific styles.",
+  "frontend/index.html": "Minimal HTML entry point for the Typing Speed Test app, mounting the React app at the #root div and loading main.tsx as a module.",
+  "frontend/src/App.tsx": "Main React component implementing a full typing speed test with random paragraph selection, 60-second timer, real-time WPM/CPM/accuracy tracking, character highlighting, results overlay, and restart functionality.",
+  "frontend/src/hooks/useActor.ts": "React hook that creates and caches an ICP backend actor using React Query, supporting both anonymous and authenticated (Internet Identity) usage, and invalidating dependent queries when the actor changes.",
+  "frontend/src/hooks/useInternetIdentity.ts": "React context, provider, and hook for Internet Identity authentication via @dfinity/auth-client, exposing login/logout, identity state, and login status to the component tree.",
+  "frontend/src/index.css": "Global stylesheet with OKLCH dark navy/cyan design system, custom fonts (Inter + JetBrains Mono), character highlight classes for the typing test, glassmorphism utilities, gradient background, and keyframe animations including an amber/yellow blinking cursor for .char-current.",
+  "frontend/src/main.tsx": "React app entry point that wraps the App component with QueryClientProvider and InternetIdentityProvider before mounting to the DOM.",
+  "frontend/tailwind.config.js": "Tailwind CSS configuration extending the theme with Inter/JetBrains Mono fonts, OKLCH color tokens, custom border radii, glow box shadows, and accordion animation keyframes.",
+  "project_state.json": "Tracks the project state (version 5) for a single-file vanilla HTML/CSS/JS typing speed test app, listing existing features, architectural notes, and requirement mappings. Includes features like random paragraph display, 60-second timer, real-time WPM/CPM/accuracy, character highlighting, results screen, restart button, responsive design, and a custom cursor color."
+}
