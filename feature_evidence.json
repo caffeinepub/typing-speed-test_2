@@ -2,8 +2,28 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-remove-all-timer-and-time-related-ui-elements-from-the-game-this-includes-the-countdown-timer-display-the-duration-selector-toggle-buttons-15-30-60-120s-and-any-time-remaining-hud-panel-the-game-should-no-longer-end-based-on-a-timer-instead-it-runs-until-all-lives-are-lost-game-over-condition-remains-lives-based-only",
-      "featureTitle": "Remove all timer and time-related UI elements from the game. This includes the countdown timer display, the duration selector toggle buttons (15/30/60/120s), and any time-remaining HUD panel. The game should no longer end based on a timer; instead it runs until all lives are lost (game over condition remains lives-based only).",
+      "featureId": "feature-add-a-difficulty-selector-ui-to-the-game-s-start-idle-screen-that-lets-the-player-choose-between-three-word-speed-presets-before-a-session-begins-slow-medium-and-fast-the-selector-should-be-displayed-as-neon-styled-toggle-buttons-matching-the-existing-hud-aesthetic-the-currently-selected-difficulty-should-be-visually-highlighted-e-g-neon-glow-border-or-accent-color-default-selection-should-be-medium",
+      "featureTitle": "Add a difficulty selector UI to the game's start/idle screen that lets the player choose between three word-speed presets before a session begins: Slow, Medium, and Fast. The selector should be displayed as neon-styled toggle buttons matching the existing HUD aesthetic. The currently selected difficulty should be visually highlighted (e.g., neon glow border or accent color). Default selection should be Medium.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/DifficultySelector.tsx",
+        "frontend/src/types/game.ts"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-20"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-the-slow-medium-and-fast-difficulty-presets-by-defining-distinct-base-word-fall-speeds-and-spawn-intervals-for-each-slow-slower-fall-speed-and-lower-spawn-rate-than-the-current-default-medium-matches-approximately-the-current-default-behavior-fast-faster-fall-speed-and-higher-spawn-rate-than-the-current-default-the-automatic-difficulty-scaling-that-increases-speed-over-time-should-still-apply-on-top-of-the-chosen-base-preset-so-each-difficulty-level-starts-from-a-different-baseline-and-escalates-from-there",
+      "featureTitle": "Implement the Slow, Medium, and Fast difficulty presets by defining distinct base word fall speeds and spawn intervals for each. Slow: slower fall speed and lower spawn rate than the current default. Medium: matches approximately the current default behavior. Fast: faster fall speed and higher spawn rate than the current default. The automatic difficulty scaling that increases speed over time should still apply on top of the chosen base preset, so each difficulty level starts from a different baseline and escalates from there.",
       "files": [
         "frontend/src/App.tsx",
         "frontend/src/types/game.ts"
@@ -16,7 +36,25 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-19"
+        "REQ-21"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-display-the-currently-active-difficulty-preset-label-e-g-slow-medium-or-fast-in-the-game-hud-while-a-session-is-in-progress-alongside-the-existing-hud-panels-score-lives-wpm-difficulty-level-this-replaces-or-augments-the-existing-difficulty-level-speed-tier-indicator-already-in-the-hud",
+      "featureTitle": "Display the currently active difficulty preset label (e.g., 'SLOW', 'MEDIUM', or 'FAST') in the game HUD while a session is in progress, alongside the existing HUD panels (Score, Lives, WPM, Difficulty Level). This replaces or augments the existing difficulty-level/speed-tier indicator already in the HUD.",
+      "files": [
+        "frontend/src/App.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-22"
       ],
       "confidence": "high"
     }

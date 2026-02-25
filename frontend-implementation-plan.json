@@ -1,29 +1,72 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Remove timer/time display from the app",
+  "title": "Add manual difficulty selector (Slow / Medium / Fast) to falling-words game",
   "requirements": [
     {
-      "id": "REQ-19",
-      "summary": "Remove all timer and time-related UI elements from the game, including countdown timer display, duration selector buttons (15/30/60/120s), and time-remaining HUD panel. The game should run until all lives are lost, with no timer-based game-over condition.",
+      "id": "REQ-20",
+      "summary": "Add a difficulty selector UI with Slow, Medium, and Fast toggle buttons to the game's start/idle screen, styled with neon aesthetics and Medium selected by default",
       "acceptanceCriteria": [
-        "No countdown timer is visible anywhere in the HUD during gameplay.",
-        "No duration selector (15/30/60/120s toggle buttons) is displayed on the start screen or in the HUD.",
-        "The game does not end when a timer reaches zero; the only game-over condition is losing all lives.",
-        "All timer-related state variables and logic are removed or disabled in App.tsx.",
-        "The HUD still displays Score, Streak Multiplier, Lives, WPM, and Difficulty Level without any time element.",
-        "WPM calculation continues to function correctly without a fixed-duration timer (e.g., elapsed time since first keystroke is used internally but not displayed)."
+        "Three difficulty buttons — Slow, Medium, Fast — are visible on the pre-game or idle screen.",
+        "Buttons match the neon/dark gaming aesthetic of the existing HUD.",
+        "The active/selected difficulty is visually distinct from the others (highlighted).",
+        "Medium is selected by default when the game loads or restarts.",
+        "The selector is not shown while a game session is in progress (or is disabled/locked)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/types/game.ts",
+          "operation": "modify",
+          "description": "Add a DifficultyPreset type ('slow' | 'medium' | 'fast') and extend the GamePhase or game state types to include selectedDifficulty: DifficultyPreset field that tracks the player's chosen preset."
+        },
+        {
+          "path": "frontend/src/components/DifficultySelector.tsx",
+          "operation": "create",
+          "description": "Create a new component that renders three neon-styled toggle buttons for Slow, Medium, and Fast difficulty presets. The component accepts selectedDifficulty and onSelectDifficulty props. Apply neon border glow styling to the active button and standard neon outline to inactive buttons, matching the existing HUD aesthetic defined in frontend/src/index.css and frontend/tailwind.config.js."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Add selectedDifficulty state initialized to 'medium'. Render the DifficultySelector component in the 'idle' phase section (where the start button appears). Pass selectedDifficulty and a handler that updates the state. Hide or disable the selector during active game phases. Ensure the difficulty selector is positioned prominently on the idle/start screen using neon-styled container layout."
+        }
+      ]
+    },
+    {
+      "id": "REQ-21",
+      "summary": "Implement Slow, Medium, and Fast difficulty presets by defining distinct base word fall speeds and spawn intervals, with automatic difficulty scaling still applied on top of the chosen baseline",
+      "acceptanceCriteria": [
+        "Selecting Slow starts words falling noticeably slower and spawning less frequently than Medium.",
+        "Selecting Medium produces behavior equivalent to the current game defaults.",
+        "Selecting Fast starts words falling noticeably faster and spawning more frequently than Medium.",
+        "The existing automatic difficulty scaling (speed and spawn rate increasing over time) still functions on top of the chosen base preset.",
+        "Switching difficulty resets the game to the initial state for that preset."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/types/game.ts",
+          "operation": "modify",
+          "description": "Add a DifficultyConfig interface with baseWordSpeed: number and baseSpawnInterval: number fields. Export a DIFFICULTY_PRESETS constant mapping 'slow', 'medium', and 'fast' to DifficultyConfig objects with distinct speed and spawn values (Slow: slower/longer; Medium: current defaults; Fast: faster/shorter)."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Import DIFFICULTY_PRESETS from types/game.ts. Use selectedDifficulty to look up the corresponding DifficultyConfig at game start. Apply baseWordSpeed and baseSpawnInterval from the preset as the starting values for word falling speed and spawn timing. Ensure the existing automatic difficulty scaling logic (which increases speed/spawn rate over time or by level) multiplies or adds to these base values so each preset escalates from its own baseline. When the player changes difficulty and starts a new game, reset all game state (score, lives, level) and reinitialize with the new preset's base values."
+        }
+      ]
+    },
+    {
+      "id": "REQ-22",
+      "summary": "Display the currently active difficulty preset label (SLOW, MEDIUM, or FAST) in the game HUD during an active session, styled consistently with existing neon HUD panels",
+      "acceptanceCriteria": [
+        "A HUD panel shows the chosen difficulty preset label during an active game session.",
+        "The label uses neon styling consistent with the rest of the HUD.",
+        "The label updates correctly if the player restarts with a different difficulty."
       ],
       "file_operations": [
         {
           "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Remove all timer-related state variables (timeRemaining, selectedDuration, etc.), remove duration selector buttons from the start screen, remove countdown timer display from the HUD, remove timer-based game-over logic from the game loop (keep only lives-based game over), and ensure WPM calculation continues to work using elapsed time since first keystroke internally without displaying any timer."
-        },
-        {
-          "path": "frontend/src/types/game.ts",
-          "operation": "modify",
-          "description": "Remove the DurationOption type and any timer-related fields from GameStats or other game-related type definitions that reference time or duration selection."
+          "description": "Add a new HUD panel in the existing HUD container (alongside Score, Lives, WPM, Difficulty Level) that displays the selectedDifficulty preset label in uppercase (e.g., 'SLOW', 'MEDIUM', or 'FAST'). Apply the same neon border, glow, and text styling classes used by the other HUD panels to maintain visual consistency. Ensure the label is only visible during active game phases and updates when the player restarts with a different difficulty preset."
         }
       ]
     }

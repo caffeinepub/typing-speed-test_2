@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 13,
+  "projectStateVersion": 15,
   "summary": "A modern Typing Speed Test Web App inspired by ZType/ZTypeGame, built with pure HTML, CSS, and JavaScript in a single file. The game now features a ZType-style gameplay mechanic where words fall from the top of the screen and the player must type them to 'fire' and destroy the words before they reach the bottom. Removes the paragraph typing structure in favor of individual falling words. Includes configurable countdown timer (15/30/60/120s), real-time WPM/CPM/accuracy, score/streak multiplier, neon gaming UI, and arcade-style HUD.",
   "architectural_notes": [
     "Single-file app: all HTML, CSS, and JS in one .html file",
@@ -161,6 +161,30 @@
         "REQ-19"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-add-a-difficulty-selector-ui-to-the-game-s-start-idle-screen-that-lets-the-player-choose-between-three-word-speed-presets-before-a-session-begins-slow-medium-and-fast-the-selector-should-be-displayed-as-neon-styled-toggle-buttons-matching-the-existing-hud-aesthetic-the-currently-selected-difficulty-should-be-visually-highlighted-e-g-neon-glow-border-or-accent-color-default-selection-should-be-medium",
+      "title": "Add a difficulty selector UI to the game's start/idle screen that lets the player choose between three word-speed presets before a session begins: Slow, Medium, and Fast. The selector should be displayed as neon-styled toggle buttons matching the existing HUD aesthetic. The currently selected difficulty should be visually highlighted (e.g., neon glow border or accent color). Default selection should be Medium.",
+      "reqIds": [
+        "REQ-20"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-the-slow-medium-and-fast-difficulty-presets-by-defining-distinct-base-word-fall-speeds-and-spawn-intervals-for-each-slow-slower-fall-speed-and-lower-spawn-rate-than-the-current-default-medium-matches-approximately-the-current-default-behavior-fast-faster-fall-speed-and-higher-spawn-rate-than-the-current-default-the-automatic-difficulty-scaling-that-increases-speed-over-time-should-still-apply-on-top-of-the-chosen-base-preset-so-each-difficulty-level-starts-from-a-different-baseline-and-escalates-from-there",
+      "title": "Implement the Slow, Medium, and Fast difficulty presets by defining distinct base word fall speeds and spawn intervals for each. Slow: slower fall speed and lower spawn rate than the current default. Medium: matches approximately the current default behavior. Fast: faster fall speed and higher spawn rate than the current default. The automatic difficulty scaling that increases speed over time should still apply on top of the chosen base preset, so each difficulty level starts from a different baseline and escalates from there.",
+      "reqIds": [
+        "REQ-21"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-display-the-currently-active-difficulty-preset-label-e-g-slow-medium-or-fast-in-the-game-hud-while-a-session-is-in-progress-alongside-the-existing-hud-panels-score-lives-wpm-difficulty-level-this-replaces-or-augments-the-existing-difficulty-level-speed-tier-indicator-already-in-the-hud",
+      "title": "Display the currently active difficulty preset label (e.g., 'SLOW', 'MEDIUM', or 'FAST') in the game HUD while a session is in progress, alongside the existing HUD panels (Score, Lives, WPM, Difficulty Level). This replaces or augments the existing difficulty-level/speed-tier indicator already in the HUD.",
+      "reqIds": [
+        "REQ-22"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -243,8 +267,8 @@
       "status": "pending"
     },
     {
-      "id": "AR-14",
-      "summary": "Remove the timer/time display from the app",
+      "id": "AR-15",
+      "summary": "Add difficulty levels (slow, medium, fast word speed) to control game challenge",
       "reqIds": [],
       "status": "pending"
     }

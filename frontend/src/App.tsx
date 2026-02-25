@@ -1,31 +1,41 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { RotateCcw, Heart, Zap, Target, Trophy, TrendingUp, Crosshair } from 'lucide-react';
+import { RotateCcw, Heart, Zap, Target, Trophy, TrendingUp, Crosshair, Gauge } from 'lucide-react';
 import FallingWord from './components/FallingWord';
 import FloatingScorePopup from './components/FloatingScorePopup';
 import GameInputBar from './components/GameInputBar';
+import DifficultySelector from './components/DifficultySelector';
 import { getWordForLevel } from './data/wordLists';
-import type { FallingWord as FallingWordType, ScorePopup, ComboNotification, GamePhase, GameStats } from './types/game';
+import type {
+  FallingWord as FallingWordType,
+  ScorePopup,
+  ComboNotification,
+  GamePhase,
+  GameStats,
+  DifficultyPreset,
+} from './types/game';
+import { DIFFICULTY_PRESETS } from './types/game';
 
 const MAX_LIVES = 3;
 const PLAY_FIELD_HEIGHT = 520;
 const WORD_BOTTOM_THRESHOLD = PLAY_FIELD_HEIGHT - 40;
 
-const DIFFICULTY_CONFIG: Record<number, { spawnInterval: number; baseSpeed: number }> = {
-  1: { spawnInterval: 2800, baseSpeed: 38 },
-  2: { spawnInterval: 2400, baseSpeed: 48 },
-  3: { spawnInterval: 2000, baseSpeed: 60 },
-  4: { spawnInterval: 1700, baseSpeed: 74 },
-  5: { spawnInterval: 1500, baseSpeed: 88 },
-  6: { spawnInterval: 1300, baseSpeed: 104 },
-  7: { spawnInterval: 1150, baseSpeed: 120 },
-  8: { spawnInterval: 1000, baseSpeed: 138 },
-  9: { spawnInterval: 900, baseSpeed: 158 },
-  10: { spawnInterval: 800, baseSpeed: 180 },
+// Per-level scaling config — values are multiplied on top of the preset baseline
+const LEVEL_SCALE: Record<number, { spawnMultiplier: number; speedMultiplier: number }> = {
+  1:  { spawnMultiplier: 1.00, speedMultiplier: 1.00 },
+  2:  { spawnMultiplier: 0.90, speedMultiplier: 1.12 },
+  3:  { spawnMultiplier: 0.80, speedMultiplier: 1.26 },
+  4:  { spawnMultiplier: 0.72, speedMultiplier: 1.42 },
+  5:  { spawnMultiplier: 0.65, speedMultiplier: 1.60 },
+  6:  { spawnMultiplier: 0.58, speedMultiplier: 1.80 },
+  7:  { spawnMultiplier: 0.52, speedMultiplier: 2.02 },
+  8:  { spawnMultiplier: 0.47, speedMultiplier: 2.26 },
+  9:  { spawnMultiplier: 0.43, speedMultiplier: 2.52 },
+  10: { spawnMultiplier: 0.40, speedMultiplier: 2.80 },
 };
 
-function getDifficultyConfig(level: number) {
+function getLevelScale(level: number) {
   const clamped = Math.min(level, 10);
-  return DIFFICULTY_CONFIG[clamped] || DIFFICULTY_CONFIG[10];
+  return LEVEL_SCALE[clamped] || LEVEL_SCALE[10];
 }
 
 function getMultiplier(streak: number): number {
@@ -216,7 +226,15 @@ function ResultsOverlay({
 }
 
 // Idle / Start Screen
-function StartScreen({ onStart }: { onStart: () => void }) {
+function StartScreen({
+  onStart,
+  selectedDifficulty,
+  onSelectDifficulty,
+}: {
+  onStart: () => void;
+  selectedDifficulty: DifficultyPreset;
+  onSelectDifficulty: (d: DifficultyPreset) => void;
+}) {
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
       <div className="results-card rounded-none p-8 max-w-md w-full text-center relative overflow-hidden animate-fade-in-up">
@@ -235,7 +253,15 @@ function StartScreen({ onStart }: { onStart: () => void }) {
         <h1 className="font-arcade text-3xl font-bold neon-text-cyan mb-1 tracking-widest animate-neon-flicker">
           Z-TYPE
         </h1>
-        <p className="font-arcade text-xs text-muted-foreground mb-8 tracking-wider">WORD DESTROYER</p>
+        <p className="font-arcade text-xs text-muted-foreground mb-6 tracking-wider">WORD DESTROYER</p>
+
+        {/* Difficulty selector */}
+        <div className="mb-6">
+          <DifficultySelector
+            selectedDifficulty={selectedDifficulty}
+            onSelectDifficulty={onSelectDifficulty}
+          />
+        </div>
 
         <div className="hud-panel p-4 mb-6 text-left">
           <p className="font-arcade text-[9px] text-muted-foreground uppercase tracking-widest mb-2">How to Play</p>
@@ -261,6 +287,7 @@ let wordIdCounter = 0;
 
 export default function App() {
   const [gamePhase, setGamePhase] = useState<GamePhase>('idle');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyPreset>('medium');
   const [lives, setLives] = useState<number>(MAX_LIVES);
   const [score, setScore] = useState<number>(0);
   const [streak, setStreak] = useState<number>(0);
@@ -298,14 +325,15 @@ export default function App() {
   const lastFrameTimeRef = useRef<number>(0);
   const animFrameRef = useRef<number>(0);
   const spawnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // React 19: useRef<T>(null) returns RefObject<T | null>
   const inputRef = useRef<HTMLInputElement>(null);
   const playFieldRef = useRef<HTMLDivElement>(null);
+  const selectedDifficultyRef = useRef<DifficultyPreset>('medium');
 
   // Sync refs
   useEffect(() => { fallingWordsRef.current = fallingWords; }, [fallingWords]);
   useEffect(() => { targetedWordIdRef.current = targetedWordId; }, [targetedWordId]);
   useEffect(() => { typedTextRef.current = typedText; }, [typedText]);
+  useEffect(() => { selectedDifficultyRef.current = selectedDifficulty; }, [selectedDifficulty]);
 
   const triggerCombo = useCallback((newMultiplier: number) => {
     const id = ++comboIdRef.current;
@@ -328,15 +356,17 @@ export default function App() {
   const spawnWord = useCallback(() => {
     if (gamePhaseRef.current !== 'playing') return;
     const level = difficultyLevelRef.current;
-    const config = getDifficultyConfig(level);
-    const text = getWordForLevel(level);
+    const preset = DIFFICULTY_PRESETS[selectedDifficultyRef.current];
+    const scale = getLevelScale(level);
+    const baseSpeed = preset.baseWordSpeed * scale.speedMultiplier;
     const speedVariance = 0.8 + Math.random() * 0.4;
+    const text = getWordForLevel(level);
     const newWord: FallingWordType = {
       id: ++wordIdCounter,
       text,
       x: 8 + Math.random() * 84,
       y: -30,
-      speed: config.baseSpeed * speedVariance,
+      speed: baseSpeed * speedVariance,
       status: 'falling',
       typedIndex: 0,
     };
@@ -345,10 +375,12 @@ export default function App() {
 
   const startSpawner = useCallback((level: number) => {
     if (spawnTimerRef.current) clearInterval(spawnTimerRef.current);
-    const config = getDifficultyConfig(level);
+    const preset = DIFFICULTY_PRESETS[selectedDifficultyRef.current];
+    const scale = getLevelScale(level);
+    const interval = Math.round(preset.baseSpawnInterval * scale.spawnMultiplier);
     spawnTimerRef.current = setInterval(() => {
       spawnWord();
-    }, config.spawnInterval);
+    }, interval);
   }, [spawnWord]);
 
   const triggerLifeLoss = useCallback(() => {
@@ -365,7 +397,6 @@ export default function App() {
     if (spawnTimerRef.current) { clearInterval(spawnTimerRef.current); spawnTimerRef.current = null; }
     cancelAnimationFrame(animFrameRef.current);
 
-    // Use elapsed time since game start for WPM calculation
     const elapsed = gameStartTimeRef.current > 0
       ? (performance.now() - gameStartTimeRef.current) / 1000
       : elapsedRef.current > 0 ? elapsedRef.current : 1;
@@ -388,7 +419,6 @@ export default function App() {
     const delta = lastFrameTimeRef.current ? (timestamp - lastFrameTimeRef.current) / 1000 : 0.016;
     lastFrameTimeRef.current = timestamp;
 
-    // Track elapsed time for WPM
     elapsedRef.current += delta;
 
     setFallingWords(prev => {
@@ -396,27 +426,22 @@ export default function App() {
       let livesLost = 0;
 
       for (const word of prev) {
-        // Keep destroying words briefly (they get cleaned up by the useEffect below)
         if (word.status === 'destroying') {
           updated.push(word);
           continue;
         }
-        // Skip already-missed words
         if (word.status === 'missed') {
           continue;
         }
 
-        // word.status is now narrowed to 'falling' | 'targeted'
         const newY = word.y + word.speed * delta;
 
         if (newY >= WORD_BOTTOM_THRESHOLD) {
-          // Word reached the bottom — lose a life
           livesLost++;
-          // If this was the targeted word, clear targeting
           if (targetedWordIdRef.current === word.id) {
             targetedWordIdRef.current = null;
           }
-          continue; // drop the word
+          continue;
         }
 
         updated.push({ ...word, y: newY });
@@ -427,12 +452,10 @@ export default function App() {
         livesRef.current = newLives;
         setLives(newLives);
         triggerLifeLoss();
-        // Reset streak on life loss
         streakRef.current = 0;
         setStreak(0);
         setMultiplier(1);
         if (newLives <= 0) {
-          // Schedule endGame after state update
           setTimeout(() => endGame(true), 50);
         }
       }
@@ -449,26 +472,29 @@ export default function App() {
     if (destroyingWords.length === 0) return;
     const timer = setTimeout(() => {
       setFallingWords(prev => prev.filter(w => w.status !== 'destroying'));
-    }, 500);
+    }, 400);
     return () => clearTimeout(timer);
   }, [fallingWords]);
 
-  // Difficulty scaling: increase level every 10 words destroyed
+  // Difficulty level scaling — restart spawner when level changes
   useEffect(() => {
-    const newLevel = Math.min(10, 1 + Math.floor(wordsDestroyedRef.current / 10));
-    if (newLevel !== difficultyLevelRef.current) {
-      difficultyLevelRef.current = newLevel;
-      setDifficultyLevel(newLevel);
-      if (gamePhase === 'playing') {
-        startSpawner(newLevel);
-      }
-    }
-  }, [stats.wordsDestroyed, gamePhase, startSpawner]);
+    if (gamePhase !== 'playing') return;
+    startSpawner(difficultyLevel);
+  }, [difficultyLevel, gamePhase, startSpawner]);
 
-  const startGame = useCallback(() => {
+  // Score → level progression
+  useEffect(() => {
+    if (gamePhase !== 'playing') return;
+    const newLevel = Math.min(10, Math.floor(score / 500) + 1);
+    if (newLevel !== difficultyLevel) {
+      setDifficultyLevel(newLevel);
+      difficultyLevelRef.current = newLevel;
+    }
+  }, [score, difficultyLevel, gamePhase]);
+
+  const handleStart = useCallback(() => {
     // Reset all state
     wordIdCounter = 0;
-    gamePhaseRef.current = 'playing';
     livesRef.current = MAX_LIVES;
     scoreRef.current = 0;
     streakRef.current = 0;
@@ -477,17 +503,16 @@ export default function App() {
     wordsDestroyedRef.current = 0;
     difficultyLevelRef.current = 1;
     elapsedRef.current = 0;
-    gameStartTimeRef.current = performance.now();
     lastFrameTimeRef.current = 0;
-    targetedWordIdRef.current = null;
-    typedTextRef.current = '';
+    gameStartTimeRef.current = performance.now();
 
-    setGamePhase('playing');
     setLives(MAX_LIVES);
     setScore(0);
     setStreak(0);
     setMultiplier(1);
+    setMultiplierBump(false);
     setDifficultyLevel(1);
+    setStats({ wpm: 0, accuracy: 100, correctChars: 0, wrongChars: 0, wordsDestroyed: 0 });
     setFallingWords([]);
     setTargetedWordId(null);
     setTypedText('');
@@ -498,16 +523,144 @@ export default function App() {
     setScreenShake(false);
     setLifeVignette(false);
     setIsGameOver(false);
-    setStats({ wpm: 0, accuracy: 100, correctChars: 0, wrongChars: 0, wordsDestroyed: 0 });
 
-    // Start spawner and animation loop
-    startSpawner(1);
-    spawnWord(); // spawn first word immediately
-    animFrameRef.current = requestAnimationFrame(animationLoop);
+    gamePhaseRef.current = 'playing';
+    setGamePhase('playing');
 
-    // Focus input
-    setTimeout(() => inputRef.current?.focus(), 100);
-  }, [startSpawner, spawnWord, animationLoop]);
+    // Spawn first word immediately, then start interval
+    setTimeout(() => {
+      spawnWord();
+      startSpawner(1);
+      animFrameRef.current = requestAnimationFrame(animationLoop);
+      inputRef.current?.focus();
+    }, 300);
+  }, [spawnWord, startSpawner, animationLoop]);
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setTypedText(value);
+    setHasError(false);
+
+    if (!value) {
+      // Clear targeting if input is cleared
+      if (targetedWordIdRef.current !== null) {
+        setTargetedWordId(null);
+        targetedWordIdRef.current = null;
+        setFallingWords(prev => prev.map(w =>
+          w.status === 'targeted' ? { ...w, status: 'falling' as const } : w
+        ));
+      }
+      return;
+    }
+
+    const currentWords = fallingWordsRef.current;
+    const lockedId = targetedWordIdRef.current;
+
+    if (lockedId !== null) {
+      const lockedWord = currentWords.find(w => w.id === lockedId);
+      if (lockedWord) {
+        if (lockedWord.text.startsWith(value)) {
+          // Valid prefix — update typedIndex
+          setFallingWords(prev => prev.map(w =>
+            w.id === lockedId ? { ...w, typedIndex: value.length } : w
+          ));
+          return;
+        } else {
+          // Wrong key
+          setHasError(true);
+          setTimeout(() => setHasError(false), 300);
+          wrongCharsRef.current++;
+          return;
+        }
+      }
+    }
+
+    // Not locked — find a word starting with typed value
+    const match = currentWords.find(
+      w => (w.status === 'falling' || w.status === 'targeted') && w.text.startsWith(value)
+    );
+
+    if (match) {
+      // Lock on
+      if (lockedId !== null && lockedId !== match.id) {
+        setFallingWords(prev => prev.map(w =>
+          w.id === lockedId ? { ...w, status: 'falling' as const, typedIndex: 0 } : w
+        ));
+      }
+      setTargetedWordId(match.id);
+      targetedWordIdRef.current = match.id;
+      setFallingWords(prev => prev.map(w =>
+        w.id === match.id
+          ? { ...w, status: 'targeted' as const, typedIndex: value.length }
+          : w.status === 'targeted' && w.id !== match.id
+          ? { ...w, status: 'falling' as const, typedIndex: 0 }
+          : w
+      ));
+      correctCharsRef.current++;
+    } else {
+      setHasError(true);
+      setTimeout(() => setHasError(false), 300);
+      wrongCharsRef.current++;
+    }
+  }, []);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === ' ') e.preventDefault();
+
+    if (e.key === 'Backspace') return;
+
+    const currentTyped = typedTextRef.current;
+    const lockedId = targetedWordIdRef.current;
+
+    if (!lockedId) return;
+
+    const currentWords = fallingWordsRef.current;
+    const lockedWord = currentWords.find(w => w.id === lockedId);
+    if (!lockedWord) return;
+
+    // Check if word is complete
+    if (currentTyped === lockedWord.text) {
+      // Destroy word
+      const wordScore = lockedWord.text.length * 10;
+      const newStreak = streakRef.current + 1;
+      streakRef.current = newStreak;
+      const newMultiplier = getMultiplier(newStreak);
+      const prevMultiplier = getMultiplier(newStreak - 1);
+      const points = wordScore * newMultiplier;
+
+      scoreRef.current += points;
+      wordsDestroyedRef.current++;
+      correctCharsRef.current += lockedWord.text.length;
+
+      setScore(scoreRef.current);
+      setStreak(newStreak);
+
+      if (newMultiplier !== prevMultiplier) {
+        setMultiplier(newMultiplier);
+        triggerCombo(newMultiplier);
+      }
+
+      // Score popup
+      const popupId = ++popupIdRef.current;
+      const popup: ScorePopup = {
+        id: popupId,
+        x: lockedWord.x,
+        y: lockedWord.y,
+        points,
+      };
+      setScorePopups(prev => [...prev, popup]);
+      setTimeout(() => setScorePopups(prev => prev.filter(p => p.id !== popupId)), 900);
+
+      // Mark as destroying
+      setFallingWords(prev => prev.map(w =>
+        w.id === lockedId ? { ...w, status: 'destroying' as const } : w
+      ));
+
+      setTargetedWordId(null);
+      targetedWordIdRef.current = null;
+      setTypedText('');
+    }
+  }, [triggerCombo]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -517,255 +670,150 @@ export default function App() {
     };
   }, []);
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (gamePhaseRef.current !== 'playing') return;
-    const value = e.target.value;
-    const currentWords = fallingWordsRef.current;
-    const currentTargetId = targetedWordIdRef.current;
+  const targetedWord = fallingWords.find(w => w.id === targetedWordId);
 
-    // If no target, try to lock on by first character
-    if (currentTargetId === null) {
-      if (value.length === 0) return;
-      const firstChar = value[0].toLowerCase();
-      // Find a falling word that starts with this character
-      const candidate = currentWords.find(
-        w => (w.status === 'falling' || w.status === 'targeted') && w.text[0].toLowerCase() === firstChar
-      );
-      if (candidate) {
-        targetedWordIdRef.current = candidate.id;
-        setTargetedWordId(candidate.id);
-        // Check if the typed char matches
-        if (candidate.text[0].toLowerCase() === firstChar) {
-          correctCharsRef.current++;
-          setFallingWords(prev =>
-            prev.map(w =>
-              w.id === candidate.id
-                ? { ...w, status: 'targeted', typedIndex: 1 }
-                : w.status === 'targeted' ? { ...w, status: 'falling' } : w
-            )
-          );
-          setTypedText(value);
-          typedTextRef.current = value;
-          setHasError(false);
-        } else {
-          wrongCharsRef.current++;
-          setHasError(true);
-          setTimeout(() => setHasError(false), 300);
-          setTypedText('');
-          typedTextRef.current = '';
-          e.target.value = '';
-        }
-      } else {
-        // No match
-        wrongCharsRef.current++;
-        setHasError(true);
-        setTimeout(() => setHasError(false), 300);
-        setTypedText('');
-        typedTextRef.current = '';
-        e.target.value = '';
-      }
-      return;
-    }
-
-    // We have a target — validate typed text against target word
-    const targetWord = currentWords.find(w => w.id === currentTargetId);
-    if (!targetWord) {
-      // Target disappeared
-      targetedWordIdRef.current = null;
-      setTargetedWordId(null);
-      setTypedText('');
-      typedTextRef.current = '';
-      e.target.value = '';
-      return;
-    }
-
-    const expectedPrefix = targetWord.text.slice(0, value.length).toLowerCase();
-    const typedLower = value.toLowerCase();
-
-    if (typedLower === expectedPrefix) {
-      // Correct so far
-      const newChars = value.length - typedTextRef.current.length;
-      if (newChars > 0) correctCharsRef.current += newChars;
-      setTypedText(value);
-      typedTextRef.current = value;
-      setHasError(false);
-
-      setFallingWords(prev =>
-        prev.map(w =>
-          w.id === currentTargetId ? { ...w, typedIndex: value.length } : w
-        )
-      );
-
-      // Check if word is complete
-      if (value.length >= targetWord.text.length) {
-        // Word destroyed!
-        wordsDestroyedRef.current++;
-        const newStreak = streakRef.current + 1;
-        streakRef.current = newStreak;
-        const newMultiplier = getMultiplier(newStreak);
-        const prevMultiplier = getMultiplier(newStreak - 1);
-
-        const basePoints = targetWord.text.length * 10;
-        const points = basePoints * newMultiplier;
-        scoreRef.current += points;
-        setScore(scoreRef.current);
-        setStreak(newStreak);
-
-        if (newMultiplier !== prevMultiplier) {
-          setMultiplier(newMultiplier);
-          triggerCombo(newMultiplier);
-        }
-
-        // Floating score popup
-        const popupId = ++popupIdRef.current;
-        setScorePopups(prev => [...prev, { id: popupId, x: targetWord.x, y: targetWord.y, points }]);
-        setTimeout(() => setScorePopups(prev => prev.filter(p => p.id !== popupId)), 1000);
-
-        // Mark word as destroying
-        setFallingWords(prev =>
-          prev.map(w => w.id === currentTargetId ? { ...w, status: 'destroying' } : w)
-        );
-
-        // Update difficulty based on words destroyed
-        const newLevel = Math.min(10, 1 + Math.floor(wordsDestroyedRef.current / 10));
-        if (newLevel !== difficultyLevelRef.current) {
-          difficultyLevelRef.current = newLevel;
-          setDifficultyLevel(newLevel);
-          startSpawner(newLevel);
-        }
-
-        // Clear targeting
-        targetedWordIdRef.current = null;
-        setTargetedWordId(null);
-        setTypedText('');
-        typedTextRef.current = '';
-        e.target.value = '';
-      }
-    } else {
-      // Wrong character
-      wrongCharsRef.current++;
-      setHasError(true);
-      setTimeout(() => setHasError(false), 300);
-      // Revert to last correct state
-      const correctText = typedTextRef.current;
-      setTypedText(correctText);
-      e.target.value = correctText;
-    }
-  }, [triggerCombo, startSpawner]);
-
-  const handleKeyDown = useCallback((_e: React.KeyboardEvent<HTMLInputElement>) => {
-    // No special key handling needed currently
-  }, []);
-
-  const targetedWord = fallingWords.find(w => w.id === targetedWordId) ?? null;
-  const multiplierClass = getMultiplierClass(multiplier);
+  const difficultyLabelColor: Record<DifficultyPreset, string> = {
+    slow: 'neon-text-green',
+    medium: 'neon-text-cyan',
+    fast: 'text-orange-400',
+  };
 
   return (
-    <div className={`game-root min-h-screen flex flex-col ${screenShake ? 'screen-shake' : ''}`}>
+    <div className={`game-root ${screenShake ? 'screen-shake' : ''}`}>
       <Starfield />
       {lifeVignette && <div className="life-loss-vignette" />}
       {flashOverlay && <div className={`combo-flash-overlay ${flashOverlay}`} />}
 
-      {/* Header */}
-      <header className="relative z-10 flex items-center justify-between px-6 py-3 border-b border-border/40">
-        <div className="flex items-center gap-2">
-          <Target size={18} className="neon-text-cyan" />
-          <span className="font-arcade text-sm font-bold neon-text-cyan tracking-widest">Z-TYPE</span>
-        </div>
-        <div className="font-arcade text-[10px] text-muted-foreground tracking-widest uppercase">Word Destroyer</div>
-      </header>
+      {/* Background image */}
+      <div
+        className="absolute inset-0 z-0 pointer-events-none"
+        style={{
+          backgroundImage: 'url(/assets/generated/bg-space-grid.dim_1920x1080.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          opacity: 0.18,
+        }}
+      />
 
-      {/* HUD */}
-      {gamePhase === 'playing' && (
-        <div className="relative z-10 flex items-center justify-center gap-2 px-4 py-2 flex-wrap">
-          <HudPanel icon={Trophy} label="Score" value={score.toLocaleString()} colorClass="neon-text-magenta" />
-          <HudPanel
-            icon={TrendingUp}
-            label="Streak"
-            value={`x${multiplier}`}
-            colorClass={multiplierClass}
-            bump={multiplierBump}
-          />
-          <LivesDisplay lives={lives} />
-          <HudPanel icon={Zap} label="WPM" value={stats.wpm} colorClass="neon-text-cyan" />
-          <HudPanel icon={Target} label="Level" value={difficultyLevel} colorClass="neon-text-yellow" />
-        </div>
+      {/* ── IDLE SCREEN ── */}
+      {gamePhase === 'idle' && (
+        <StartScreen
+          onStart={handleStart}
+          selectedDifficulty={selectedDifficulty}
+          onSelectDifficulty={setSelectedDifficulty}
+        />
       )}
 
-      {/* Play field */}
-      <main className="relative z-10 flex-1 flex flex-col">
-        <div
-          ref={playFieldRef}
-          className="play-field relative flex-1 mx-4 mb-2 overflow-hidden"
-          style={{ height: PLAY_FIELD_HEIGHT }}
-        >
-          <div className="danger-line" />
-
-          {fallingWords.map(word => (
-            <FallingWord
-              key={word.id}
-              word={word}
-              isTargeted={word.id === targetedWordId}
+      {/* ── PLAYING ── */}
+      {gamePhase === 'playing' && (
+        <>
+          {/* HUD */}
+          <div className="hud-container">
+            <HudPanel icon={Trophy} label="Score" value={score} colorClass="neon-text-cyan" />
+            <HudPanel
+              icon={TrendingUp}
+              label="Streak"
+              value={streak}
+              colorClass={getMultiplierClass(multiplier)}
             />
-          ))}
+            <LivesDisplay lives={lives} />
+            <HudPanel
+              icon={TrendingUp}
+              label="WPM"
+              value={stats.wpm}
+              colorClass="neon-text-green"
+            />
+            <HudPanel
+              icon={Zap}
+              label="Level"
+              value={difficultyLevel}
+              colorClass="neon-text-yellow"
+              bump={multiplierBump}
+            />
+            {/* Difficulty preset badge */}
+            <div className="hud-panel p-2 flex flex-col items-center gap-0.5">
+              <div className="flex items-center gap-1 mb-0.5">
+                <Gauge size={10} className="text-muted-foreground" />
+                <span className="font-arcade text-[8px] font-semibold uppercase tracking-widest text-muted-foreground">Mode</span>
+              </div>
+              <div className={`font-arcade text-lg font-bold leading-none uppercase ${difficultyLabelColor[selectedDifficulty]}`}>
+                {selectedDifficulty}
+              </div>
+            </div>
+          </div>
 
-          {scorePopups.map(popup => (
-            <FloatingScorePopup key={popup.id} popup={popup} />
-          ))}
+          {/* Multiplier display */}
+          {multiplier > 1 && (
+            <div className={`multiplier-badge ${getMultiplierClass(multiplier)} ${multiplierBump ? 'animate-multiplier-bump' : ''}`}>
+              x{multiplier}
+            </div>
+          )}
 
           {/* Combo notifications */}
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-none z-20">
-            {comboNotifications.map(n => (
-              <div key={n.id} className={`font-arcade text-lg font-bold tracking-widest combo-notification ${n.colorClass}`}>
-                {n.label}
-              </div>
+          {comboNotifications.map(n => (
+            <div key={n.id} className={`combo-notification ${n.colorClass} ${n.flashClass}`}>
+              {n.label}
+            </div>
+          ))}
+
+          {/* Play field */}
+          <div
+            ref={playFieldRef}
+            className="play-field"
+            style={{ height: PLAY_FIELD_HEIGHT }}
+          >
+            <div className="danger-line" />
+
+            {fallingWords.map(word => (
+              <FallingWord
+                key={word.id}
+                word={word}
+                isTargeted={word.id === targetedWordId}
+              />
+            ))}
+
+            {scorePopups.map(popup => (
+              <FloatingScorePopup key={popup.id} popup={popup} />
             ))}
           </div>
-        </div>
 
-        {/* Input bar */}
-        {gamePhase === 'playing' && (
+          {/* Input bar */}
           <GameInputBar
             typedText={typedText}
-            targetWordText={targetedWord ? targetedWord.text : null}
+            targetWordText={targetedWord?.text ?? null}
             hasError={hasError}
             inputRef={inputRef}
             onInputChange={handleInputChange}
             onKeyDown={handleKeyDown}
           />
-        )}
-      </main>
-
-      {/* Footer */}
-      <footer className="relative z-10 flex items-center justify-center py-2 border-t border-border/40">
-        <p className="font-arcade text-[9px] text-muted-foreground tracking-wider">
-          © {new Date().getFullYear()} Built with{' '}
-          <span className="neon-text-magenta">♥</span>{' '}
-          using{' '}
-          <a
-            href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(typeof window !== 'undefined' ? window.location.hostname : 'unknown-app')}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="neon-text-cyan hover:underline"
-          >
-            caffeine.ai
-          </a>
-        </p>
-      </footer>
-
-      {/* Overlays */}
-      {gamePhase === 'idle' && (
-        <StartScreen onStart={startGame} />
+        </>
       )}
 
+      {/* ── RESULTS ── */}
       {gamePhase === 'finished' && (
         <ResultsOverlay
           stats={stats}
           score={score}
           isGameOver={isGameOver}
-          onRestart={startGame}
+          onRestart={handleStart}
         />
       )}
+
+      {/* Footer */}
+      <footer className="game-footer">
+        <span>
+          Built with ♥ using{' '}
+          <a
+            href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname || 'unknown-app')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="footer-link"
+          >
+            caffeine.ai
+          </a>
+          {' '}· © {new Date().getFullYear()}
+        </span>
+      </footer>
     </div>
   );
 }

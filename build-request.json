@@ -1,40 +1,79 @@
 {
   "kind": "build_request",
-  "title": "Remove timer/time display from the app",
+  "title": "Add manual difficulty selector (Slow / Medium / Fast) to falling-words game",
   "projectName": "ZType Arcade",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-19",
-      "text": "Remove all timer and time-related UI elements from the game. This includes the countdown timer display, the duration selector toggle buttons (15/30/60/120s), and any time-remaining HUD panel. The game should no longer end based on a timer; instead it runs until all lives are lost (game over condition remains lives-based only).",
+      "id": "REQ-20",
+      "text": "Add a difficulty selector UI to the game's start/idle screen that lets the player choose between three word-speed presets before a session begins: Slow, Medium, and Fast. The selector should be displayed as neon-styled toggle buttons matching the existing HUD aesthetic. The currently selected difficulty should be visually highlighted (e.g., neon glow border or accent color). Default selection should be Medium.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-7"
         ],
         "quotes": [
-          "remove the time in app"
+          "add difficulty levels (slow, medium, fast word speed) to make it more challenging"
         ]
       },
       "acceptanceCriteria": [
-        "No countdown timer is visible anywhere in the HUD during gameplay.",
-        "No duration selector (15/30/60/120s toggle buttons) is displayed on the start screen or in the HUD.",
-        "The game does not end when a timer reaches zero; the only game-over condition is losing all lives.",
-        "All timer-related state variables and logic are removed or disabled in App.tsx.",
-        "The HUD still displays Score, Streak Multiplier, Lives, WPM, and Difficulty Level without any time element.",
-        "WPM calculation continues to function correctly without a fixed-duration timer (e.g., elapsed time since first keystroke is used internally but not displayed)."
+        "Three difficulty buttons — Slow, Medium, Fast — are visible on the pre-game or idle screen.",
+        "Buttons match the neon/dark gaming aesthetic of the existing HUD.",
+        "The active/selected difficulty is visually distinct from the others (highlighted).",
+        "Medium is selected by default when the game loads or restarts.",
+        "The selector is not shown while a game session is in progress (or is disabled/locked)."
+      ]
+    },
+    {
+      "id": "REQ-21",
+      "text": "Implement the Slow, Medium, and Fast difficulty presets by defining distinct base word fall speeds and spawn intervals for each. Slow: slower fall speed and lower spawn rate than the current default. Medium: matches approximately the current default behavior. Fast: faster fall speed and higher spawn rate than the current default. The automatic difficulty scaling that increases speed over time should still apply on top of the chosen base preset, so each difficulty level starts from a different baseline and escalates from there.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-7"
+        ],
+        "quotes": [
+          "add difficulty levels (slow, medium, fast word speed) to make it more challenging"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Selecting Slow starts words falling noticeably slower and spawning less frequently than Medium.",
+        "Selecting Medium produces behavior equivalent to the current game defaults.",
+        "Selecting Fast starts words falling noticeably faster and spawning more frequently than Medium.",
+        "The existing automatic difficulty scaling (speed and spawn rate increasing over time) still functions on top of the chosen base preset.",
+        "Switching difficulty resets the game to the initial state for that preset."
+      ]
+    },
+    {
+      "id": "REQ-22",
+      "text": "Display the currently active difficulty preset label (e.g., 'SLOW', 'MEDIUM', or 'FAST') in the game HUD while a session is in progress, alongside the existing HUD panels (Score, Lives, WPM, Difficulty Level). This replaces or augments the existing difficulty-level/speed-tier indicator already in the HUD.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-7"
+        ],
+        "quotes": [
+          "add difficulty levels (slow, medium, fast word speed)"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A HUD panel shows the chosen difficulty preset label during an active game session.",
+        "The label uses neon styling consistent with the rest of the HUD.",
+        "The label updates correctly if the player restarts with a different difficulty."
       ]
     }
   ],
   "constraints": [
-    "Do not remove or alter the lives system, score/streak system, difficulty scaling, or falling-words mechanic.",
-    "Do not modify any files under frontend/src/hooks/ or frontend/src/components/ui.",
-    "WPM must remain accurate using elapsed time since first keystroke internally, even though no timer is shown."
+    "Do not re-introduce any timer or duration-selector UI elements.",
+    "Game over condition must remain lives-based only — no time limit.",
+    "Do not modify files listed in frontend.immutablePaths.",
+    "Preserve all existing HUD panels (Score, Streak, Lives, WPM, Difficulty tier)."
   ],
   "nonGoals": [
-    "Adding any new game modes or features beyond removing the timer.",
-    "Changing the visual theme or neon aesthetic.",
-    "Modifying backend logic."
+    "Adding new difficulty tiers beyond Slow, Medium, and Fast.",
+    "Persisting the player's difficulty preference across sessions.",
+    "Changing the word lists or tiering system beyond adjusting fall speed and spawn rate.",
+    "Adding sound effects or new visual themes."
   ],
   "imageRequirements": {
     "required": [],

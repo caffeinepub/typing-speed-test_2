@@ -1,14 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Remove all timer and time-related UI elements from the ZType Arcade game so the only game-over condition is losing all lives.
+**Goal:** Add a manual difficulty selector (Slow / Medium / Fast) to the ZType Arcade falling-words game, allowing players to choose a word speed preset before each session.
 
 **Planned changes:**
-- Remove the countdown timer display from the HUD
-- Remove the duration selector toggle buttons (15s/30s/60s/120s) from the start screen and HUD
-- Remove any time-remaining HUD panel
-- Disable timer-based game-over logic so the game only ends when all lives are lost
-- Keep WPM calculation working internally using elapsed time since first keystroke (not displayed as a timer)
-- HUD continues to show Score, Streak Multiplier, Lives, WPM, and Difficulty Level
+- Add three neon-styled toggle buttons (Slow, Medium, Fast) on the pre-game/idle screen for difficulty selection, with Medium selected by default
+- Define distinct base fall speeds and spawn intervals for each preset: Slow (slower/less frequent), Medium (current defaults), Fast (faster/more frequent)
+- Keep existing automatic difficulty scaling active on top of the chosen base preset
+- Hide or disable the difficulty selector while a game session is in progress
+- Add a HUD panel showing the active difficulty preset label (SLOW / MEDIUM / FAST) during a game session, consistent with the existing neon HUD aesthetic
 
-**User-visible outcome:** The game no longer shows a timer or duration selector. Players can play indefinitely until they run out of lives, with the HUD showing only score, streak, lives, WPM, and difficulty.
+**User-visible outcome:** Players can select a difficulty level before starting a game. The chosen preset affects the starting word fall speed and spawn rate, and the active preset label is visible in the HUD throughout the session.
